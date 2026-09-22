@@ -1,0 +1,23 @@
+<div class="page">
+  <div>
+    <div class="eyebrow">Auto Eléctrico Leos</div>
+    <h1 class="page-title">Recordatorios</h1>
+    <p class="page-sub">Envíos por correo electrónico — canal actual del piloto</p>
+  </div>
+
+  <div class="recordatorios-pills">
+    <span class="pill" [class.pill--active]="filtroActivo() === 'todos'" (click)="filtroActivo.set('todos')">Todos</span>
+    @for (f of filtros; track f.estado) {
+      <span class="pill" [class.pill--active]="filtroActivo() === f.estado" (click)="filtroActivo.set(f.estado)">{{ f.label }}</span>
+    }
+  </div>
+
+  <app-card flexCol style="flex-grow:1;">
+    <app-data-table [columns]="columnas" [rows]="recordatoriosFiltrados()" emptyMessage="No hay recordatorios con este filtro.">
+      <ng-template appCellDef="vehiculo" let-r><span class="muted">{{ r.vehiculo }}</span></ng-template>
+      <ng-template appCellDef="vencimiento" let-r><span class="muted">{{ r.vencimiento }}</span></ng-template>
+      <ng-template appCellDef="canal" let-r><span class="muted">{{ r.canal }}</span></ng-template>
+      <ng-template appCellDef="estado" let-r><app-status-badge [status]="estadoBadge(r.estado)" [label]="estadoLabel(r.estado)" /></ng-template>
+    </app-data-table>
+  </app-card>
+</div>

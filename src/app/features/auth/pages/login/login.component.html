@@ -1,0 +1,61 @@
+<div class="login">
+  <div class="login__brand">
+    <div class="login__brand-header">
+      <span class="login__dot"></span>
+      <span class="login__wordmark">Circuito</span>
+    </div>
+    <h1 class="login__headline">Gestión de inventarios para repuestos automotrices</h1>
+    <p class="login__lead">
+      Control de stock, compatibilidad de piezas, compras inteligentes y recordatorios de mantenimiento
+      para tu almacén.
+    </p>
+    <div class="login__swatches">
+      <span class="login__swatch" style="background: var(--color-brand-dark);"></span>
+      <span class="login__swatch" style="background: var(--color-info-dark);"></span>
+      <span class="login__swatch" style="background: var(--color-warning-dark);"></span>
+      <span class="login__swatch" style="background: var(--color-success-dark);"></span>
+    </div>
+  </div>
+
+  <div class="login__panel">
+    <form class="login__form" [formGroup]="form" (ngSubmit)="ingresar()" novalidate>
+      <div>
+        <h2 class="login__title">Iniciar sesión</h2>
+      </div>
+
+      <app-form-field label="Correo electrónico" inputId="correo">
+        <input id="correo" type="email" formControlName="email" placeholder="nombre@almacen.com" autocomplete="email" />
+      </app-form-field>
+      @if (form.controls.email.invalid && form.controls.email.touched) {
+        <span class="login__error">Ingresa un correo válido.</span>
+      }
+
+      <app-form-field label="Contraseña" inputId="clave">
+        <input id="clave" type="password" formControlName="password" placeholder="••••••••" autocomplete="current-password" />
+      </app-form-field>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <a href="#" style="font-size:12px;">¿Olvidaste tu contraseña?</a>
+      </div>
+
+      @if (error()) {
+        <span class="login__error">{{ error() }}</span>
+      }
+
+      <button class="btn btn-primary login__submit" type="submit" [disabled]="enviando()">
+        {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
+      </button>
+
+      <div class="muted" style="font-size:12px; text-align:center; margin-top:8px;">
+        ¿Tu almacén no tiene cuenta aún? <a href="#">Contáctanos</a>
+      </div>
+
+      <div class="login__demo">
+        <span class="login__demo-linea"></span>
+        <span class="muted">o, mientras no hay backend</span>
+        <span class="login__demo-linea"></span>
+      </div>
+      <button type="button" class="btn login__demo-btn" (click)="entrarModoDemo()">Entrar en modo demo</button>
+    </form>
+  </div>
+</div>

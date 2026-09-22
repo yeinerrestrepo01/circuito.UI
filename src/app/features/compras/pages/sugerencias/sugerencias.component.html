@@ -1,0 +1,28 @@
+<div class="page">
+  <div>
+    <h1 class="page-title">Sugerencia de compras</h1>
+    <p class="page-sub">Basado en rotación de los últimos 90 días y vencimientos próximos del CRM</p>
+  </div>
+
+  <app-card flexCol style="flex-grow:1;">
+    <app-data-table [columns]="columnas" [rows]="sugerencias()" emptyMessage="No hay sugerencias de compra por ahora.">
+      <ng-template appCellDef="seleccionado" let-s>
+        <input
+          type="checkbox"
+          [attr.aria-label]="'Seleccionar ' + s.producto"
+          [checked]="estaSeleccionado(s.sku)"
+          (change)="alternar(s.sku)"
+        />
+      </ng-template>
+      <ng-template appCellDef="sugerido" let-s><span style="font-weight:500;">{{ s.sugerido }}</span></ng-template>
+      <ng-template appCellDef="motivo" let-s><span class="muted" style="font-size:12px;">{{ s.motivo }}</span></ng-template>
+    </app-data-table>
+  </app-card>
+
+  <app-card class="sugerencias-footer">
+    <span style="font-size:13px;">{{ seleccionados().size }} referencias seleccionadas · agrupadas por {{ proveedoresSeleccionados() }} proveedores</span>
+    <button class="btn btn-primary" (click)="generarOrden()" [disabled]="seleccionados().size === 0 || generando()">
+      {{ generando() ? 'Generando…' : 'Generar orden de compra' }}
+    </button>
+  </app-card>
+</div>

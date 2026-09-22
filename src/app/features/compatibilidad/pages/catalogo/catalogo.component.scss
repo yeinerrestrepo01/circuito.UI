@@ -1,0 +1,3 @@
+.catalogo-filtros__form { display: flex; gap: 12px; align-items: flex-end; }
+/* app-form-field es `display:contents`; el flex-item real es su `.field` interno. */
+.catalogo-filtros__form ::ng-deep .field { flex-grow: 1; }

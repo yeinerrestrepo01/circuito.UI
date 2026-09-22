@@ -1,0 +1,69 @@
+<div class="page facturacion">
+  <div class="facturacion__carrito flex-col gap-4">
+    <h1 class="page-title">Nueva venta</h1>
+    <div class="facturacion__buscador">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Buscar producto por referencia o nombre"
+          aria-label="Buscar producto"
+          [value]="busqueda()"
+          (input)="busqueda.set($any($event.target).value)"
+        />
+      </label>
+      @if (resultadosBusqueda().length > 0) {
+        <app-card class="facturacion__resultados">
+          @for (p of resultadosBusqueda(); track p.sku) {
+            <button type="button" class="facturacion__resultado" (click)="agregar(p.sku)">
+              <span class="mono">{{ p.sku }}</span>
+              <span>{{ p.nombre }}</span>
+              <span class="muted">{{ p.precioVenta | cop }}</span>
+            </button>
+          }
+        </app-card>
+      }
+    </div>
+
+    <app-card flexCol style="flex-grow:1;">
+      <app-data-table [columns]="columnas" [rows]="items()" emptyMessage="Busca un producto arriba para agregarlo a la venta.">
+        <ng-template appCellDef="precio" let-i>{{ i.precio | cop }}</ng-template>
+        <ng-template appCellDef="subtotal" let-i>{{ i.cantidad * i.precio | cop }}</ng-template>
+      </app-data-table>
+    </app-card>
+  </div>
+
+  <app-card padded flexCol class="facturacion__cliente">
+    <div style="font-size:16px; font-weight:500;">Cliente y facturación</div>
+
+    <div [formGroup]="cliente" class="flex-col gap-4">
+      <app-form-field label="NIT o cédula" inputId="nitc">
+        <div class="facturacion__nit">
+          <input id="nitc" type="text" formControlName="nitOCedula" placeholder="1075..." style="font-family:var(--font-mono);" />
+          <button type="button" class="btn btn-sm">Consultar DIAN</button>
+        </div>
+      </app-form-field>
+      <app-form-field label="Nombre o razón social" inputId="nombrec">
+        <input id="nombrec" type="text" formControlName="nombre" />
+      </app-form-field>
+      <app-form-field label="Correo (opcional)" inputId="correoc">
+        <input id="correoc" type="email" formControlName="correo" />
+      </app-form-field>
+    </div>
+
+    <div class="facturacion__totales">
+      <div class="muted facturacion__linea"><span>Subtotal</span><span>{{ subtotal() | cop }}</span></div>
+      <div class="muted facturacion__linea"><span>IVA (19%)</span><span>{{ iva() | cop }}</span></div>
+      <div class="facturacion__linea facturacion__linea--total"><span>Total</span><span>{{ total() | cop }}</span></div>
+    </div>
+
+    <button class="btn btn-primary" style="height:48px;" [disabled]="generando()" (click)="generarFactura()">
+      {{ generando() ? 'Generando…' : 'Generar factura electrónica' }}
+    </button>
+    <div class="muted" style="font-size:11px; text-align:center;">
+      Se enviará a la DIAN — CUFE y código QR se generan automáticamente
+    </div>
+  </app-card>
+</div>

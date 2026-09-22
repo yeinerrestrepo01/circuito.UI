@@ -1,0 +1,12 @@
+.data-table { font-size: 13px; width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-size: 11px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--color-ink-secondary);
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td { padding: 16px 20px; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table__empty { text-align: center; padding: 32px 20px; }

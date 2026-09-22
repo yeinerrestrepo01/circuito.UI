@@ -1,0 +1,88 @@
+<div class="escaneo">
+  <div class="escaneo__bar">
+    <button type="button" aria-label="Volver" class="escaneo__volver" (click)="volver()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    </button>
+    <span style="font-size:16px; font-weight:500;">Registrar movimiento</span>
+  </div>
+
+  <div class="escaneo__body">
+    @if (escaneando()) {
+      <video #video class="escaneo__video" muted playsinline></video>
+      <button type="button" class="btn" (click)="detenerEscaneo()">Cancelar escaneo</button>
+    } @else if (soportaCamara) {
+      <button type="button" class="escaneo__scan-btn" (click)="iniciarEscaneo()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="7" width="18" height="12" rx="2" /><circle cx="12" cy="13" r="3.5" /><path d="M8 7l1.2-2h5.6L16 7" />
+        </svg>
+        <span style="font-size:14px; font-weight:500;">Escanear código de barras</span>
+        <span class="muted" style="font-size:12px;">o ingresa la referencia manualmente abajo</span>
+      </button>
+    } @else {
+      <div class="escaneo__aviso muted">
+        Tu navegador no admite escaneo por cámara. Ingresa la referencia manualmente.
+      </div>
+    }
+
+    <app-form-field label="Referencia" inputId="ref">
+      <input id="ref" type="text" [formControl]="referencia" (keyup.enter)="buscarPorReferencia()" style="font-family:var(--font-mono);" />
+    </app-form-field>
+    <button type="button" class="btn" (click)="buscarPorReferencia()" [disabled]="buscandoProducto()">
+      {{ buscandoProducto() ? 'Buscando…' : 'Buscar' }}
+    </button>
+
+    @if (producto(); as p) {
+      <app-card style="padding:12px; display:flex; gap:12px;">
+        <div class="escaneo__miniatura"></div>
+        <div>
+          <div style="font-size:14px; font-weight:500;">{{ p.nombre }}</div>
+          <div class="muted" style="font-size:12px; margin-top:2px;">Ubicación {{ p.ubicacion }}</div>
+          <div style="font-size:12px; margin-top:2px; color:var(--color-warning);">Stock actual: {{ p.stockActual }} unidades</div>
+        </div>
+      </app-card>
+
+      <form [formGroup]="form">
+        <div>
+          <span class="escaneo__label">Tipo de movimiento</span>
+          <div style="display:flex; gap:8px;">
+            <button
+              type="button"
+              class="btn"
+              [class.btn-primary]="form.controls.tipo.value === 'entrada'"
+              style="flex-grow:1; height:44px;"
+              (click)="seleccionarTipo('entrada')"
+            >
+              Entrada
+            </button>
+            <button
+              type="button"
+              class="btn"
+              [class.btn-primary]="form.controls.tipo.value === 'salida'"
+              style="flex-grow:1; height:44px;"
+              (click)="seleccionarTipo('salida')"
+            >
+              Salida
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <span class="escaneo__label">Cantidad</span>
+          <div class="escaneo__stepper">
+            <button type="button" class="btn" aria-label="Restar" (click)="sumarCantidad(-1)">–</button>
+            <span class="escaneo__stepper-valor">{{ form.controls.cantidad.value }}</span>
+            <button type="button" class="btn" aria-label="Sumar" (click)="sumarCantidad(1)">+</button>
+          </div>
+        </div>
+      </form>
+    }
+  </div>
+
+  <div class="escaneo__footer">
+    <button type="button" class="btn btn-primary" style="width:100%; height:52px; font-size:15px;" [disabled]="!producto() || confirmando()" (click)="confirmar()">
+      {{ confirmando() ? 'Confirmando…' : 'Confirmar movimiento' }}
+    </button>
+  </div>
+</div>

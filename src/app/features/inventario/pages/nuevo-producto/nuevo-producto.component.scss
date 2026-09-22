@@ -1,0 +1,25 @@
+.nuevo-producto { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; flex-grow: 1; min-height: 0; }
+.nuevo-producto__col { overflow-y: auto; }
+.nuevo-producto__titulo { font-size: 14px; font-weight: 500; margin-bottom: 14px; }
+.nuevo-producto__grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.nuevo-producto__campo-solo { display: block; margin-bottom: 12px; }
+.nuevo-producto__pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
+.nuevo-producto__pill { background: var(--color-page); border: 1px solid var(--color-border); padding: 4px 10px; border-radius: 999px; }
+/* `display:flex; flex-direction:column` los da el input `flexCol` de app-card. */
+.nuevo-producto__imagen { align-items: center; gap: 10px; }
+.nuevo-producto__dropzone {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  border: 1px dashed var(--color-border);
+  background: var(--color-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink-secondary);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .nuevo-producto { grid-template-columns: 1fr; }
+}

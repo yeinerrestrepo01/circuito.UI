@@ -1,0 +1,26 @@
+<table class="data-table">
+  <thead>
+    <tr>
+      @for (col of columns(); track col.key) {
+        <th [style.text-align]="col.align ?? 'left'">{{ col.header }}</th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row) {
+      <tr>
+        @for (col of columns(); track col.key) {
+          <td [class.mono]="col.mono" [style.text-align]="col.align ?? 'left'">
+            @if (plantillaPara(col.key); as plantilla) {
+              <ng-container [ngTemplateOutlet]="plantilla" [ngTemplateOutletContext]="{ $implicit: row }" />
+            } @else {
+              {{ valorDe(row, col) }}
+            }
+          </td>
+        }
+      </tr>
+    } @empty {
+      <tr><td [attr.colspan]="columns().length" class="data-table__empty muted">{{ emptyMessage() }}</td></tr>
+    }
+  </tbody>
+</table>

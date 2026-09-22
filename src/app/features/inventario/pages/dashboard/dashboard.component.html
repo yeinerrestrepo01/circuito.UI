@@ -1,0 +1,57 @@
+<div class="page">
+  <div class="content-header">
+    <div>
+      <div class="eyebrow">Auto Eléctrico Leos</div>
+      <h1 class="page-title">Inventario</h1>
+    </div>
+    <div class="content-header__actions">
+      <label class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+        </svg>
+        <input type="text" placeholder="Buscar referencia o nombre" aria-label="Buscar" />
+      </label>
+      <a routerLink="/inventario/ajustes" class="btn btn-primary">Registrar movimiento</a>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <app-service-ring [percentage]="94" label="Nivel de servicio" sublabel="Pedidos surtidos completos" />
+    <app-kpi-tile label="Alertas de vencimiento" value="12" variant="warning" />
+    <app-kpi-tile label="Quiebres de stock" [value]="quiebresDeStock() + ''" variant="danger" />
+    <app-kpi-tile label="Ventas del mes" [value]="ventasDelMes" variant="success" />
+  </div>
+
+  <div class="grid-2-1">
+    <app-card flexCol>
+      <div class="card__header">
+        Productos con alerta
+        <span class="muted" style="font-size:12px; font-weight:400;">{{ productosConAlerta().length }} activas</span>
+      </div>
+      <app-data-table [columns]="columnas" [rows]="productosConAlerta()" emptyMessage="Sin alertas de stock por ahora.">
+        <ng-template appCellDef="sku" let-p>
+          <a [routerLink]="['/inventario', p.sku]" class="dashboard-fila-link">{{ p.sku }}</a>
+        </ng-template>
+        <ng-template appCellDef="stockActual" let-p>{{ p.stockActual }}</ng-template>
+        <ng-template appCellDef="estado" let-p>
+          <app-status-badge [status]="estadoBadge(p.estado)" [label]="estadoLabel(p.estado)" />
+        </ng-template>
+      </app-data-table>
+    </app-card>
+
+    <app-card padded flexCol>
+      <span style="font-size:15px; font-weight:500;">Recordatorios recientes</span>
+      <span class="muted" style="font-size:12px; margin-bottom:8px;">Últimos envíos por correo</span>
+      @for (r of recordatorios; track r.cliente) {
+        <div class="recordatorio">
+          <span class="status-dot" [class]="'status--' + r.color"></span>
+          <div>
+            <div style="font-size:13px;">{{ r.cliente }} — {{ r.producto }}</div>
+            <div class="muted" style="font-size:12px;">{{ r.detalle }}</div>
+          </div>
+        </div>
+      }
+      <a routerLink="/alertas" style="font-size:12px; margin-top:auto; padding-top:8px;">Ver todos los recordatorios</a>
+    </app-card>
+  </div>
+</div>

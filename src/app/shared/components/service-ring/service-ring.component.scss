@@ -1,0 +1,28 @@
+.kpi-tile { border-radius: var(--radius-lg); padding: 18px 20px; background: var(--color-surface); border: 1px solid var(--color-border); }
+.kpi-tile__label { font-size: 12px; color: var(--color-ink-secondary); }
+.ring-tile { display: flex; align-items: center; gap: 18px; }
+.ring {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: conic-gradient(var(--accent, var(--color-brand)) var(--ring-pct, 94%), var(--color-border) 0);
+}
+.ring::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+.ring__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+}

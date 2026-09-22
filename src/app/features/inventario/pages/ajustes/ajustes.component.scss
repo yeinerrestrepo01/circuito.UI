@@ -1,0 +1,9 @@
+.ajustes-form { align-self: start; }
+.ajustes-form__label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+.ajustes-form__tipos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ajustes-form__tipos .btn { height: 36px; grid-column: span 1; }
+.ajustes-form__tipos .btn:last-child { grid-column: 1 / span 2; }

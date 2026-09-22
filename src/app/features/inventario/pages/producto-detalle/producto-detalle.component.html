@@ -1,0 +1,59 @@
+<div class="page">
+  <div class="breadcrumb">
+    <a routerLink="/inventario">Inventario</a><span>/</span><span class="mono">{{ sku }}</span>
+  </div>
+
+  @if (producto(); as p) {
+    <div class="detalle-header">
+      <div class="detalle-header__imagen"></div>
+      <div class="detalle-header__info">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h1 class="page-title" style="font-size:24px;">{{ p.nombre }}</h1>
+          <app-status-badge [status]="estadoBadge()" [label]="estadoLabel()" />
+        </div>
+        <div class="mono" style="margin-top:4px;">{{ p.sku }} · Ubicación {{ p.ubicacion }}</div>
+      </div>
+      <a [routerLink]="['/inventario/ajustes']" [queryParams]="{ sku: p.sku }" class="btn btn-primary">Registrar movimiento</a>
+    </div>
+
+    <div class="detalle-metricas">
+      <app-card padded>
+        <div class="muted" style="font-size:12px;">Stock actual</div>
+        <div class="detalle-metricas__valor" [style.color]="p.estado === 'disponible' ? 'inherit' : 'var(--color-warning)'">{{ p.stockActual }}</div>
+      </app-card>
+      <app-card padded>
+        <div class="muted" style="font-size:12px;">Stock mínimo</div>
+        <div class="detalle-metricas__valor">{{ p.stockMinimo }}</div>
+      </app-card>
+      <app-card padded>
+        <div class="muted" style="font-size:12px;">Precio</div>
+        <div class="detalle-metricas__valor">{{ p.precioVenta | cop }}</div>
+      </app-card>
+      <app-card padded>
+        <div class="muted" style="font-size:12px;">Proveedor principal</div>
+        <div class="detalle-metricas__valor detalle-metricas__valor--sm">{{ p.proveedorPrincipal ?? '—' }}</div>
+      </app-card>
+      <app-card padded>
+        <div class="muted" style="font-size:12px;">Vehículos compatibles</div>
+        <div class="detalle-metricas__valor">{{ p.vehiculosCompatibles ?? 0 }}</div>
+      </app-card>
+    </div>
+  }
+
+  <div class="tabs">
+    <span class="tabs__item" [class.tabs__item--active]="pestanaActiva() === 'movimientos'" (click)="irA('movimientos')">Movimientos</span>
+    <span class="tabs__item tabs__item--disabled" title="Disponible cuando exista el módulo de Compatibilidad">Compatibilidad</span>
+    <span class="tabs__item tabs__item--disabled" title="Disponible cuando exista el módulo de Alertas">Recordatorios enviados</span>
+  </div>
+
+  @if (pestanaActiva() === 'movimientos') {
+    <app-card flexCol style="flex-grow:1;">
+      <app-data-table [columns]="columnas" [rows]="movimientos()" emptyMessage="Este producto no tiene movimientos registrados.">
+        <ng-template appCellDef="fecha" let-m>{{ m.fecha | fechaCorta: true }}</ng-template>
+        <ng-template appCellDef="tipo" let-m>
+          <span [style.color]="colorTipo(m.tipo)" style="font-weight:500;">{{ labelTipo(m.tipo) }}</span>
+        </ng-template>
+      </app-data-table>
+    </app-card>
+  }
+</div>

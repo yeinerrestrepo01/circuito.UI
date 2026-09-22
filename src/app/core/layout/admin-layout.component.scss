@@ -1,0 +1,10 @@
+.app-shell { display: flex; min-height: 100vh; }
+.content {
+  flex-grow: 1;
+  min-width: 0;
+  background: var(--color-page);
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}

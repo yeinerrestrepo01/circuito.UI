@@ -1,0 +1,10 @@
+.kpi-tile { border-radius: var(--radius-lg); padding: 18px 20px; background: var(--color-surface); border: 1px solid var(--color-border); }
+.kpi-tile--warning { background: var(--color-warning-bg); border: none; }
+.kpi-tile--warning .kpi-tile__label { color: var(--color-warning); }
+.kpi-tile--danger { background: var(--color-danger-bg); border: none; }
+.kpi-tile--danger .kpi-tile__label { color: var(--color-danger); }
+.kpi-tile--success { background: var(--color-success-bg); border: none; }
+.kpi-tile--success .kpi-tile__label { color: var(--color-success); }
+.kpi-tile--neutral { }
+.kpi-tile__label { font-size: 12px; color: var(--color-ink-secondary); }
+.kpi-tile__value { font-family: var(--font-display); font-weight: 700; font-size: 34px; margin-top: 8px; }

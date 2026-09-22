@@ -1,0 +1,55 @@
+/* Rail de navegación: siempre oscuro, sin importar el tema del contenido (ver css/tokens.css del mockup). */
+.rail {
+  width: 72px;
+  flex-shrink: 0;
+  background: var(--rail-bg);
+  border-right: 1px solid var(--rail-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) 0;
+  height: 100%;
+}
+.rail__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent, var(--color-brand-dark));
+  margin-bottom: var(--space-6);
+}
+.rail__nav { display: flex; flex-direction: column; width: 100%; align-items: center; }
+.rail__item {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-bottom: 4px;
+  color: var(--rail-icon);
+  text-decoration: none;
+}
+.rail__item svg { stroke: currentColor; }
+.rail__item span { font-size: 9px; }
+.rail__item:hover { color: var(--rail-text); text-decoration: none; }
+.rail__item--active {
+  background: color-mix(in srgb, var(--accent, var(--color-brand-dark)) 20%, transparent);
+  color: var(--accent, var(--color-brand-dark));
+}
+.rail__settings { margin-top: auto; }
+.rail__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent, var(--color-brand-dark));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: var(--space-4);
+}
+.rail__avatar--top { margin-top: auto; }
