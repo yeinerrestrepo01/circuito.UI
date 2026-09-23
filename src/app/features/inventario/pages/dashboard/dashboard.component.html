@@ -13,6 +13,7 @@
       </label>
       <a routerLink="/inventario/proveedores" class="btn">Proveedores</a>
       <a routerLink="/inventario/categorias" class="btn">Categorías</a>
+      <a routerLink="/inventario/nuevo" class="btn btn-soft">+ Crear producto nuevo</a>
       <a routerLink="/inventario/ajustes" class="btn btn-primary">Registrar movimiento</a>
     </div>
   </div>
@@ -27,10 +28,10 @@
   <div class="grid-2-1">
     <app-card flexCol>
       <div class="card__header">
-        Productos con alerta
-        <span class="muted" style="font-size:12px; font-weight:400;">{{ productosConAlerta().length }} activas</span>
+        Productos registrados
+        <span class="muted" style="font-size:12px; font-weight:400;">{{ productos().length }} en total</span>
       </div>
-      <app-data-table [columns]="columnas" [rows]="productosConAlerta()" emptyMessage="Sin alertas de stock por ahora.">
+      <app-data-table [columns]="columnasTodos" [rows]="productos()" emptyMessage="Aún no hay productos registrados.">
         <ng-template appCellDef="sku" let-p>
           <a [routerLink]="['/inventario', p.sku]" class="dashboard-fila-link">{{ p.sku }}</a>
         </ng-template>
@@ -41,19 +42,16 @@
       </app-data-table>
     </app-card>
 
-    <app-card padded flexCol>
-      <span style="font-size:15px; font-weight:500;">Recordatorios recientes</span>
-      <span class="muted" style="font-size:12px; margin-bottom:8px;">Últimos envíos por correo</span>
-      @for (r of recordatorios; track r.cliente) {
-        <div class="recordatorio">
-          <span class="status-dot" [class]="'status--' + r.color"></span>
-          <div>
-            <div style="font-size:13px;">{{ r.cliente }} — {{ r.producto }}</div>
-            <div class="muted" style="font-size:12px;">{{ r.detalle }}</div>
-          </div>
-        </div>
-      }
-      <a routerLink="/alertas" style="font-size:12px; margin-top:auto; padding-top:8px;">Ver todos los recordatorios</a>
+    <app-card flexCol>
+      <div class="card__header">
+        Productos con alerta
+        <span class="muted" style="font-size:12px; font-weight:400;">{{ productosConAlerta().length }} activas</span>
+      </div>
+      <app-data-table [columns]="columnasAlerta" [rows]="productosConAlerta()" emptyMessage="Sin alertas de stock por ahora.">
+        <ng-template appCellDef="sku" let-p>
+          <a [routerLink]="['/inventario', p.sku]" class="dashboard-fila-link">{{ p.sku }}</a>
+        </ng-template>
+      </app-data-table>
     </app-card>
   </div>
 </div>

@@ -10,21 +10,6 @@ import { EstadoBadge, StatusBadgeComponent } from '../../../../shared/components
 import { Producto } from '../../models/producto.model';
 import { InventarioService } from '../../services/inventario.service';
 
-interface Recordatorio {
-  cliente: string;
-  producto: string;
-  detalle: string;
-  color: EstadoBadge;
-}
-
-/** Fuente estática hasta que exista el módulo de Alertas (Fase 2); el dashboard solo enlaza a él. */
-const RECORDATORIOS_RECIENTES: Recordatorio[] = [
-  { cliente: 'Clara Pérez', producto: 'Batería 12V 75Ah', detalle: 'Enviado hace 2 días', color: 'warning' },
-  { cliente: 'Julián Rojas', producto: 'Alternador Bosch', detalle: 'Abierto hace 1 día', color: 'info' },
-  { cliente: 'Marta Gil', producto: 'Batería 12V 60Ah', detalle: 'Convertido en venta', color: 'success' },
-  { cliente: 'Diego Ruiz', producto: 'Motor de arranque', detalle: 'Rebotado', color: 'danger' },
-];
-
 const ESTADO_LABEL: Record<Producto['status'], string> = {
   Available: 'Disponible',
   LowStock: 'Stock bajo',
@@ -48,18 +33,24 @@ const ESTADO_LABEL: Record<Producto['status'], string> = {
 export class DashboardComponent implements OnInit {
   private readonly inventarioService = inject(InventarioService);
 
+  readonly productos = this.inventarioService.productos;
   readonly productosConAlerta = this.inventarioService.productosConAlerta;
   readonly quiebresDeStock = computed(() => this.productosConAlerta().filter((p) => p.status === 'OutOfStock').length);
-  readonly recordatorios = RECORDATORIOS_RECIENTES;
   /** Estático hasta que exista un endpoint de KPIs agregados; replica el valor del mockup. */
   readonly ventasDelMes = '$18.4M';
 
-  readonly columnas: ColumnDef<Producto>[] = [
+  readonly columnasTodos: ColumnDef<Producto>[] = [
     { key: 'sku', header: 'Referencia', mono: true },
     { key: 'name', header: 'Producto' },
     { key: 'storageLocation', header: 'Ubicación' },
     { key: 'stockQuantity', header: 'Stock' },
     { key: 'status', header: 'Estado' },
+  ];
+
+  readonly columnasAlerta: ColumnDef<Producto>[] = [
+    { key: 'sku', header: 'Referencia', mono: true },
+    { key: 'name', header: 'Producto' },
+    { key: 'storageLocation', header: 'Ubicación' },
   ];
 
   ngOnInit(): void {

@@ -1,5 +1,5 @@
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CardComponent } from '../../../../shared/components/card/card.component';
@@ -20,12 +20,17 @@ import {
 import { Producto } from '../../models/producto.model';
 import { InventarioService } from '../../services/inventario.service';
 import { ProveedoresService } from '../../services/proveedores.service';
+import { formatearCop } from '../../../../shared/utils/formato';
 
-/** Producto ya agregado al movimiento en construcción, con la cantidad propia de esta línea. */
+/** Producto ya agregado al movimiento en construcción, con la cantidad (y, si aplica, el costo de
+ * compra) propios de esta línea. */
 interface ProductoSeleccionado {
   sku: string;
   name: string;
   quantity: number;
+  /** Solo se usa (y se muestra) cuando el motivo es "Compra a proveedor"; se precarga con el costo
+   * de referencia del producto, si tiene uno. */
+  purchaseCost: number | null;
 }
 
 @Component({
@@ -44,6 +49,7 @@ export class AjustesInventarioComponent implements OnInit {
   readonly proveedores = this.proveedoresService.proveedores;
   readonly busqueda = signal('');
   readonly registrando = signal(false);
+  readonly mostrarPanel = signal(false);
 
   /** Búsqueda de productos a agregar al movimiento — no es parte de `form`, es un campo auxiliar de UI. */
   readonly busquedaProducto = new FormControl('', { nonNullable: true });
@@ -86,6 +92,7 @@ export class AjustesInventarioComponent implements OnInit {
     { key: 'quantity', header: 'Cant.' },
     { key: 'reason', header: 'Motivo' },
     { key: 'supplierName', header: 'Proveedor', cell: (m) => m.supplierName ?? '—' },
+    { key: 'purchaseCost', header: 'Costo compra', cell: (m) => (m.purchaseCost != null ? formatearCop(m.purchaseCost) : '—') },
     { key: 'performedByName', header: 'Usuario' },
   ];
 
@@ -113,7 +120,10 @@ export class AjustesInventarioComponent implements OnInit {
         // preselecciona ese producto en vez de dejar el formulario vacío.
         const sku = this.route.snapshot.queryParamMap.get('sku');
         const producto = sku ? this.inventarioService.productos().find((p) => p.sku === sku) : undefined;
-        if (producto) this.agregarProducto(producto);
+        if (producto) {
+          this.agregarProducto(producto);
+          this.mostrarPanel.set(true);
+        }
       },
       error: () => {},
     });
@@ -122,6 +132,22 @@ export class AjustesInventarioComponent implements OnInit {
     this.form.controls.tipo.valueChanges.subscribe((tipo) => {
       this.form.controls.motivo.setValue(MOTIVOS_POR_TIPO[tipo][0]);
     });
+  }
+
+  abrirPanel(): void {
+    this.mostrarPanel.set(true);
+  }
+
+  cerrarPanel(): void {
+    this.mostrarPanel.set(false);
+    this.productosSeleccionados.set([]);
+    this.busquedaProducto.setValue('');
+    this.form.reset({ tipo: 'Inflow', motivo: MOTIVOS_POR_TIPO.Inflow[0], proveedorId: '', observaciones: '' });
+  }
+
+  @HostListener('document:keydown.escape')
+  cerrarConEscape(): void {
+    if (this.mostrarPanel()) this.cerrarPanel();
   }
 
   seleccionarTipo(tipo: TipoMovimiento): void {
@@ -141,7 +167,10 @@ export class AjustesInventarioComponent implements OnInit {
   }
 
   agregarProducto(producto: Producto): void {
-    this.productosSeleccionados.update((lista) => [...lista, { sku: producto.sku, name: producto.name, quantity: 1 }]);
+    this.productosSeleccionados.update((lista) => [
+      ...lista,
+      { sku: producto.sku, name: producto.name, quantity: 1, purchaseCost: producto.purchaseCost ?? null },
+    ]);
     this.busquedaProducto.setValue('');
   }
 
@@ -152,6 +181,10 @@ export class AjustesInventarioComponent implements OnInit {
   actualizarCantidad(sku: string, cantidad: number): void {
     const valor = Math.max(1, Math.floor(cantidad) || 1);
     this.productosSeleccionados.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, quantity: valor } : p)));
+  }
+
+  actualizarCostoCompra(sku: string, costo: number | null): void {
+    this.productosSeleccionados.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, purchaseCost: costo } : p)));
   }
 
   registrar(): void {
@@ -166,7 +199,11 @@ export class AjustesInventarioComponent implements OnInit {
     const v = this.form.getRawValue();
     this.inventarioService
       .registrarMovimientos({
-        items: items.map((p) => ({ sku: p.sku, quantity: p.quantity })),
+        items: items.map((p) => ({
+          sku: p.sku,
+          quantity: p.quantity,
+          purchaseCost: this.mostrarProveedor() && p.purchaseCost !== null ? p.purchaseCost : undefined,
+        })),
         type: v.tipo,
         reason: v.motivo,
         notes: v.observaciones || undefined,
@@ -176,8 +213,7 @@ export class AjustesInventarioComponent implements OnInit {
         next: () => {
           this.toast.success(items.length === 1 ? 'Movimiento registrado.' : `${items.length} movimientos registrados.`);
           this.registrando.set(false);
-          this.productosSeleccionados.set([]);
-          this.form.reset({ tipo: 'Inflow', motivo: MOTIVOS_POR_TIPO.Inflow[0], proveedorId: '', observaciones: '' });
+          this.cerrarPanel();
         },
         error: () => this.registrando.set(false),
       });

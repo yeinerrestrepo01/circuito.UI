@@ -1,12 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { map, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { API_URL } from '../config/api-url.token';
 import { ApiResult } from '../models/api-result.model';
 
 const TOKEN_KEY = 'circuito.token';
-const MODO_DEMO_KEY = 'circuito.modoDemo';
 
 /** Mismo catálogo que Circuito.API/src/Circuito.Domain/Enums/UserType.cs — un solo rol por usuario, incluido Superadmin (ya no es un claim booleano aparte). */
 export type TipoUsuario = 'Superadmin' | 'CompanyAdmin' | 'Manager' | 'LocationAdmin' | 'Salesperson' | 'WarehouseStaff';
@@ -88,40 +87,27 @@ export class AuthService {
     );
   }
 
-  /**
-   * TEMPORAL: crea una sesión local sin backend, para poder navegar la app sin depender de que
-   * `Circuito.API` esté corriendo. El token no está firmado (no sirve contra la API real) y
-   * expira en 8h. Quitar este método (y el botón "Modo demo" del login) cuando ya no haga falta.
-   */
-  entrarModoDemo(): void {
-    const token = crearTokenDemo();
-    guardarToken(token);
-    this._token.set(token);
-    try {
-      localStorage.setItem(MODO_DEMO_KEY, '1');
-    } catch {
-      /* almacenamiento no disponible */
-    }
-  }
-
-  /** Los servicios de dominio lo consultan para servir datos de ejemplo en vez de llamar a la API. */
-  enModoDemo(): boolean {
-    try {
-      return localStorage.getItem(MODO_DEMO_KEY) === '1';
-    } catch {
-      return false;
-    }
-  }
-
   logout(): void {
     guardarToken(null);
     this._token.set(null);
-    try {
-      localStorage.removeItem(MODO_DEMO_KEY);
-    } catch {
-      /* almacenamiento no disponible */
-    }
     void this.router.navigate(['/login']);
+  }
+
+  /**
+   * Se llama una sola vez al arrancar la app (ver `provideAppInitializer` en app.config.ts): si hay
+   * un token guardado, confirma contra `/auth/me` que sigue correspondiendo a un usuario real antes
+   * de que el usuario intente hacer algo. Un token puede quedar "vigente" por firma/expiración pero
+   * ya inservible si, por ejemplo, la base de datos se reinició — sin esto, el primer síntoma sería
+   * un error críptico al guardar algo, no un aviso claro de que hay que volver a iniciar sesión.
+   * El interceptor de errores ya desloguea solo ante un 401, así que aquí solo hace falta disparar
+   * la llamada y tragarse el error para no romper el arranque de la app.
+   */
+  verificarSesionVigente(): Observable<void> {
+    if (!this._token()) return of(undefined);
+    return this.http.get(`${this.apiUrl}/auth/me`).pipe(
+      map(() => undefined),
+      catchError(() => of(undefined)),
+    );
   }
 }
 
@@ -151,28 +137,6 @@ function decodificar(token: string | null): JwtPayload | null {
   } catch {
     return null;
   }
-}
-
-function base64UrlDe(objeto: unknown): string {
-  const json = JSON.stringify(objeto);
-  const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(json)));
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/** JWT con firma vacía: solo para decodificar localmente, nunca se envía a una API real como válido. */
-function crearTokenDemo(): string {
-  const header = base64UrlDe({ alg: 'none', typ: 'JWT' });
-  const payload = base64UrlDe({
-    sub: 'demo',
-    email: 'demo@autoelectricoleos.com',
-    name: 'Usuario Demo',
-    companyId: 'demo-empresa',
-    companyName: 'Auto Eléctrico Leos',
-    userType: 'CompanyAdmin',
-    locationId: undefined,
-    exp: Math.floor(Date.now() / 1000) + 8 * 60 * 60,
-  } satisfies JwtPayload);
-  return `${header}.${payload}.demo`;
 }
 
 function iniciales(nombre: string): string {

@@ -68,6 +68,7 @@ export class NuevoProductoComponent implements OnInit {
     ubicacion: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     stockInicial: new FormControl(0, { nonNullable: true, validators: [Validators.min(0)] }),
     stockMinimo: new FormControl(5, { nonNullable: true, validators: [Validators.min(0)] }),
+    precioCompra: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
     precioVenta: new FormControl<number | null>(null, { validators: [Validators.required] }),
     vidaUtilAplica: new FormControl(true, { nonNullable: true }),
     vidaUtilCategoria: new FormControl(CATEGORIAS_VIDA_UTIL[0], { nonNullable: true }),
@@ -94,6 +95,21 @@ export class NuevoProductoComponent implements OnInit {
     const marca = this.marcaSignal().trim();
     if (!categoria || !marca) return '';
     return `${prefijoSku(categoria.name)}-${prefijoSku(marca)}-${this.codigoNumerico()}`;
+  });
+
+  private readonly precioCompraSignal = toSignal(this.form.controls.precioCompra.valueChanges, {
+    initialValue: this.form.controls.precioCompra.value,
+  });
+  private readonly precioVentaSignal = toSignal(this.form.controls.precioVenta.valueChanges, {
+    initialValue: this.form.controls.precioVenta.value,
+  });
+
+  /** (venta - costo) / venta, en porcentaje — null hasta que haya precio de compra Y de venta. */
+  readonly margenPorcentaje = computed(() => {
+    const costo = this.precioCompraSignal();
+    const venta = this.precioVentaSignal();
+    if (costo === null || venta === null || venta <= 0) return null;
+    return Math.round(((venta - costo) / venta) * 100 * 100) / 100;
   });
 
   ngOnInit(): void {
@@ -177,9 +193,10 @@ export class NuevoProductoComponent implements OnInit {
       initialStock: v.stockInicial,
       minStock: v.stockMinimo,
       salePrice: v.precioVenta ?? 0,
+      purchaseCost: v.precioCompra ?? undefined,
       unitOfMeasure: v.unidadMedida,
       unitsPerBox: v.unidadMedida === 'Box' ? (v.unidadesPorCaja ?? undefined) : undefined,
-      suppliers: v.proveedorId ? [{ supplierId: v.proveedorId, isPrimary: true }] : [],
+      suppliers: v.proveedorId ? [{ supplierId: v.proveedorId, purchaseCost: v.precioCompra ?? undefined, isPrimary: true }] : [],
       hasLifecycleReminder: v.vidaUtilAplica,
       lifecycleCategory: v.vidaUtilAplica ? v.vidaUtilCategoria : undefined,
       lifecycleReminderWindowDays: v.vidaUtilAplica ? (ventana?.dias ?? []) : undefined,

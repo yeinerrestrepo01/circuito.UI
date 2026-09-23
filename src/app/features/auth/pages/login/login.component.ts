@@ -41,12 +41,6 @@ export class LoginComponent {
       });
   }
 
-  /** TEMPORAL: para navegar la app sin depender de que Circuito.API esté corriendo. */
-  entrarModoDemo(): void {
-    this.auth.entrarModoDemo();
-    void this.router.navigateByUrl(this.destinoTrasIngresar());
-  }
-
   /** El superadmin no tiene nada que hacer en /inventario (no pertenece a ninguna empresa). */
   private destinoTrasIngresar(): string {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');

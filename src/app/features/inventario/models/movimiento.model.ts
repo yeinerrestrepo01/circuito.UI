@@ -13,6 +13,8 @@ export interface MovimientoInventario {
   notes?: string | null;
   supplierId?: string | null;
   supplierName?: string | null;
+  /** Solo tiene valor cuando el movimiento es una compra a proveedor. */
+  purchaseCost?: number | null;
   performedByName: string;
   createdAt: string;
 }
@@ -25,12 +27,15 @@ export interface RegistrarMovimientoPayload {
   reason: string;
   notes?: string;
   supplierId?: string;
+  purchaseCost?: number;
 }
 
 /** Una línea de producto dentro de un registro por lote — espejo de `BatchMovementItem`. */
 export interface ItemMovimientoLote {
   sku: string;
   quantity: number;
+  /** Costo de compra de esta línea — solo aplica cuando el motivo es "Compra a proveedor". */
+  purchaseCost?: number;
 }
 
 /** Espejo de `RegisterMovementsBatchCommand` — varios productos, mismo tipo/motivo/proveedor (pantalla de Ajustes). */

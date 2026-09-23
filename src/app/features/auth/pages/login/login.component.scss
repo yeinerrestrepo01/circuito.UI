@@ -26,12 +26,6 @@
 
 .field input { height: 44px; }
 
-/* TEMPORAL: acceso sin backend, ver AuthService.entrarModoDemo(). */
-.login__demo { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
-.login__demo-linea { flex-grow: 1; height: 1px; background: var(--color-border); }
-.login__demo span.muted { font-size: 11px; white-space: nowrap; }
-.login__demo-btn { height: 44px; border-style: dashed; }
-
 @media (max-width: 800px) {
   .login__brand { display: none; }
   .login__panel { width: 100%; }

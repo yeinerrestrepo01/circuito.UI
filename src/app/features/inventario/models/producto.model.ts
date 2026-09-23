@@ -30,6 +30,9 @@ export interface Producto {
   minStock: number;
   status: EstadoProducto;
   salePrice: number;
+  purchaseCost?: number | null;
+  /** (salePrice - purchaseCost) / salePrice, en porcentaje — null si no hay costo de compra o el precio de venta es 0. */
+  marginPercentage?: number | null;
   unitOfMeasure: UnidadMedida;
   /** Unidades base que trae una caja (p. ej. 12); solo tiene valor cuando `unitOfMeasure` es 'Box'. */
   unitsPerBox?: number | null;
@@ -60,6 +63,7 @@ export interface NuevoProductoPayload {
   initialStock: number;
   minStock: number;
   salePrice: number;
+  purchaseCost?: number;
   unitOfMeasure: UnidadMedida;
   unitsPerBox?: number;
   suppliers: NuevoProductoProveedor[];

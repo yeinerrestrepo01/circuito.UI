@@ -4,21 +4,47 @@
       <div class="breadcrumb"><a routerLink="/inventario">Inventario</a><span>/</span><span>Proveedores</span></div>
       <h1 class="page-title page-title--sm">Proveedores</h1>
     </div>
-    @if (!mostrarFormulario()) {
-      <button class="btn btn-primary" (click)="abrirFormulario()">+ Nuevo proveedor</button>
-    }
+    <button class="btn btn-primary" (click)="abrirFormulario()">+ Nuevo proveedor</button>
   </div>
 
+  <app-card>
+    <app-data-table [columns]="columnas" [rows]="proveedores()" emptyMessage="Aún no hay proveedores creados.">
+      <ng-template appCellDef="fullDocument" let-p>
+        <span class="muted mono">{{ p.fullDocument ?? '—' }}</span>
+        @if (p.documentType) { <span class="muted" style="font-size:11px;"> ({{ p.documentType === 'Nit' ? 'NIT' : 'Cédula' }})</span> }
+      </ng-template>
+      <ng-template appCellDef="address" let-p><span class="muted">{{ p.address ?? '—' }}</span></ng-template>
+      <ng-template appCellDef="contactName" let-p><span class="muted">{{ p.contactName ?? '—' }}</span></ng-template>
+      <ng-template appCellDef="phone" let-p><span class="muted">{{ p.phone ?? '—' }}</span></ng-template>
+      <ng-template appCellDef="email" let-p><span class="muted">{{ p.email ?? '—' }}</span></ng-template>
+    </app-data-table>
+  </app-card>
+
   @if (mostrarFormulario()) {
-    <app-card padded>
-      <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
-        <div style="font-size:15px; font-weight:500; margin-bottom:14px;">Nuevo proveedor</div>
-        <div class="proveedores-form__grid">
+    <div class="proveedores-panel__overlay" (click)="cancelar()"></div>
+    <aside class="proveedores-panel" role="dialog" aria-modal="true" aria-label="Nuevo proveedor">
+      <div class="proveedores-panel__header">
+        <span>Nuevo proveedor</span>
+        <button type="button" class="proveedores-panel__cerrar" (click)="cancelar()" aria-label="Cerrar">×</button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="guardar()" novalidate class="proveedores-panel__form">
+        <div class="proveedores-panel__campos">
           <app-form-field label="Nombre" inputId="prov-nombre">
             <input id="prov-nombre" type="text" formControlName="name" placeholder="Ej. Baterías del Huila" />
           </app-form-field>
-          <app-form-field label="NIT (opcional)" inputId="prov-nit">
-            <input id="prov-nit" type="text" formControlName="taxId" placeholder="900123456-7" style="font-family:var(--font-mono);" />
+          <app-form-field label="Tipo de documento (opcional)" inputId="prov-tipo-doc">
+            <select id="prov-tipo-doc" formControlName="documentType">
+              <option value="">Sin documento</option>
+              @for (t of tiposDocumento; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+            </select>
+          </app-form-field>
+          <app-form-field label="Número de documento" inputId="prov-num-doc">
+            <div class="proveedores-form__doc-input">
+              <input id="prov-num-doc" type="text" formControlName="documentNumber" placeholder="Ej. 900123456" />
+              @if (digitoVerificacionPreview() !== null) {
+                <span class="proveedores-form__doc-dv">-{{ digitoVerificacionPreview() }}</span>
+              }
+            </div>
           </app-form-field>
           <app-form-field label="Dirección (opcional)" inputId="prov-direccion">
             <input id="prov-direccion" type="text" formControlName="address" placeholder="Ej. Cra 5 #12-34, Neiva" />
@@ -33,23 +59,13 @@
             <input id="prov-correo" type="email" formControlName="email" placeholder="contacto@proveedor.com" />
           </app-form-field>
         </div>
-        <div class="proveedores-form__acciones">
+        <div class="proveedores-panel__acciones">
           <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
           <button type="submit" class="btn btn-primary" [disabled]="guardando()">
             {{ guardando() ? 'Guardando…' : 'Guardar proveedor' }}
           </button>
         </div>
       </form>
-    </app-card>
+    </aside>
   }
-
-  <app-card>
-    <app-data-table [columns]="columnas" [rows]="proveedores()" emptyMessage="Aún no hay proveedores creados.">
-      <ng-template appCellDef="taxId" let-p><span class="muted mono">{{ p.taxId ?? '—' }}</span></ng-template>
-      <ng-template appCellDef="address" let-p><span class="muted">{{ p.address ?? '—' }}</span></ng-template>
-      <ng-template appCellDef="contactName" let-p><span class="muted">{{ p.contactName ?? '—' }}</span></ng-template>
-      <ng-template appCellDef="phone" let-p><span class="muted">{{ p.phone ?? '—' }}</span></ng-template>
-      <ng-template appCellDef="email" let-p><span class="muted">{{ p.email ?? '—' }}</span></ng-template>
-    </app-data-table>
-  </app-card>
 </div>
