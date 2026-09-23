@@ -22,28 +22,39 @@
 
         <div class="usuarios-form__grid">
           <app-form-field label="Nombre" inputId="inv-nombre">
-            <input id="inv-nombre" type="text" formControlName="nombre" placeholder="Ej. Camilo" />
+            <input id="inv-nombre" type="text" formControlName="firstName" placeholder="Ej. Camilo" />
           </app-form-field>
           <app-form-field label="Apellido" inputId="inv-apellido">
-            <input id="inv-apellido" type="text" formControlName="apellido" placeholder="Ej. Vega" />
+            <input id="inv-apellido" type="text" formControlName="lastName" placeholder="Ej. Vega" />
           </app-form-field>
           <app-form-field label="Teléfono" inputId="inv-telefono">
-            <input id="inv-telefono" type="tel" formControlName="telefono" placeholder="Ej. 3001234567" />
+            <input id="inv-telefono" type="tel" formControlName="phone" placeholder="Ej. 3001234567" />
           </app-form-field>
           <app-form-field label="Correo electrónico" inputId="inv-correo">
-            <input id="inv-correo" type="email" formControlName="correo" placeholder="nombre@almacen.com" />
+            <input id="inv-correo" type="email" formControlName="email" placeholder="nombre@almacen.com" />
           </app-form-field>
           <app-form-field label="Contraseña" inputId="inv-contrasena">
-            <input id="inv-contrasena" type="password" formControlName="contrasena" placeholder="Mínimo 8 caracteres" />
+            <input id="inv-contrasena" type="password" formControlName="password" placeholder="Mínimo 8 caracteres" />
           </app-form-field>
-          <app-form-field label="Rol" inputId="inv-rol">
-            <select id="inv-rol" formControlName="rol">
-              @for (r of roles; track r) { <option [value]="r">{{ r }}</option> }
+          <app-form-field label="Rol" inputId="inv-tipo">
+            <select id="inv-tipo" formControlName="type">
+              @for (t of tipos; track t) { <option [value]="t">{{ tipoLabel(t) }}</option> }
             </select>
           </app-form-field>
+
+          @if (requiereSede()) {
+            <app-form-field label="Sede" inputId="inv-sede">
+              <select id="inv-sede" formControlName="locationId">
+                @for (s of sedes(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+              </select>
+            </app-form-field>
+          }
         </div>
 
-        @if (form.controls.contrasena.invalid && form.controls.contrasena.touched) {
+        @if (requiereSede() && sedes().length === 0) {
+          <span class="usuarios-form__error">Esta empresa aún no tiene sedes creadas.</span>
+        }
+        @if (form.controls.password.invalid && form.controls.password.touched) {
           <span class="usuarios-form__error">La contraseña debe tener al menos 8 caracteres.</span>
         }
 
@@ -59,8 +70,9 @@
 
   <app-card>
     <app-data-table [columns]="columnas" [rows]="usuarios()" emptyMessage="Aún no hay usuarios en este almacén.">
-      <ng-template appCellDef="correo" let-u><span class="muted">{{ u.correo }}</span></ng-template>
-      <ng-template appCellDef="estado" let-u><app-status-badge [status]="estadoBadge(u.estado)" [label]="estadoLabel(u.estado)" /></ng-template>
+      <ng-template appCellDef="type" let-u><span class="muted">{{ tipoLabel(u.type) }}</span></ng-template>
+      <ng-template appCellDef="email" let-u><span class="muted">{{ u.email }}</span></ng-template>
+      <ng-template appCellDef="status" let-u><app-status-badge [status]="estadoBadge(u.status)" [label]="estadoLabel(u.status)" /></ng-template>
     </app-data-table>
   </app-card>
 </div>

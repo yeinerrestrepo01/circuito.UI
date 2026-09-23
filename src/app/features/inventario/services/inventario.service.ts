@@ -1,24 +1,30 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, finalize, of, tap, throwError } from 'rxjs';
+import { Observable, finalize, map, of, tap, throwError } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { API_URL } from '../../../core/config/api-url.token';
-import { MovimientoInventario, RegistrarMovimientoPayload } from '../models/movimiento.model';
+import { ApiResult } from '../../../core/models/api-result.model';
+import { MovimientoInventario, RegistrarMovimientoPayload, RegistrarMovimientosLotePayload } from '../models/movimiento.model';
 import { NuevoProductoPayload, Producto } from '../models/producto.model';
-import { crearMovimientosDemo, crearProductosDemo } from './inventario.demo-data';
+import { CategoriasService } from './categorias.service';
+import { ProveedoresService } from './proveedores.service';
 
 /**
  * Estado del módulo de Inventario. Expone signals de solo lectura; toda mutación pasa por sus
- * métodos, que llaman a la API y luego reconcilian el estado local (sin store global).
+ * métodos, que llaman a la API (`/products`, `/inventory-movements`) y luego reconcilian el
+ * estado local (sin store global).
  *
- * En modo demo (sin backend, ver `AuthService.entrarModoDemo`) sirve el catálogo de ejemplo del
- * piloto en vez de llamar a la API, para poder navegar y probar la interacción completa.
+ * En modo demo (sin backend, ver `AuthService.entrarModoDemo`) el catálogo empieza vacío — sin
+ * datos de ejemplo precargados — y se llena con lo que el usuario cree desde la UI, igual que
+ * `CategoriasService`/`ProveedoresService`.
  */
 @Injectable({ providedIn: 'root' })
 export class InventarioService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
-  private readonly apiUrl = `${inject(API_URL)}/inventario`;
+  private readonly apiUrl = inject(API_URL);
+  private readonly categoriasService = inject(CategoriasService);
+  private readonly proveedoresService = inject(ProveedoresService);
 
   private readonly _productos = signal<Producto[]>([]);
   private readonly _movimientos = signal<MovimientoInventario[]>([]);
@@ -33,19 +39,14 @@ export class InventarioService {
   readonly cargandoProductos = this._cargandoProductos.asReadonly();
   readonly cargandoMovimientos = this._cargandoMovimientos.asReadonly();
 
-  readonly productosConAlerta = computed(() => this._productos().filter((p) => p.estado !== 'disponible'));
-
-  constructor() {
-    if (this.auth.enModoDemo()) {
-      this._productos.set(crearProductosDemo());
-      this._movimientosDemo = crearMovimientosDemo();
-    }
-  }
+  readonly productosConAlerta = computed(() => this._productos().filter((p) => p.status !== 'Available'));
 
   /** Trae el catálogo completo y reemplaza el estado local. Se llama al entrar al Dashboard. */
   cargarProductos(): Observable<Producto[]> {
     this._cargandoProductos.set(true);
-    const origen$ = this.auth.enModoDemo() ? of(this._productos()) : this.http.get<Producto[]>(`${this.apiUrl}/productos`);
+    const origen$ = this.auth.enModoDemo()
+      ? of(this._productos())
+      : this.http.get<ApiResult<Producto[]>>(`${this.apiUrl}/products`).pipe(map((r) => r.data ?? []));
     return origen$.pipe(
       tap((productos) => this._productos.set(productos)),
       finalize(() => this._cargandoProductos.set(false)),
@@ -58,10 +59,12 @@ export class InventarioService {
     let origen$: Observable<MovimientoInventario[]>;
     if (this.auth.enModoDemo()) {
       const todos = this._movimientosDemo;
-      origen$ = of(sku ? todos.filter((m) => m.sku === sku) : todos);
+      origen$ = of(sku ? todos.filter((m) => m.productSku === sku) : todos);
     } else {
       const params = sku ? new HttpParams().set('sku', sku) : undefined;
-      origen$ = this.http.get<MovimientoInventario[]>(`${this.apiUrl}/movimientos`, { params });
+      origen$ = this.http
+        .get<ApiResult<MovimientoInventario[]>>(`${this.apiUrl}/inventory-movements`, { params })
+        .pipe(map((r) => r.data ?? []));
     }
     return origen$.pipe(
       tap((movimientos) => this._movimientos.set(movimientos)),
@@ -74,29 +77,37 @@ export class InventarioService {
       const producto = this._productos().find((p) => p.sku.toLowerCase() === sku.toLowerCase());
       return producto
         ? of(producto)
-        : throwError(() => new HttpErrorResponse({ status: 404, statusText: 'No encontrado', url: `${this.apiUrl}/productos/${sku}` }));
+        : throwError(() => new HttpErrorResponse({ status: 404, statusText: 'No encontrado', url: `${this.apiUrl}/products/${sku}` }));
     }
-    return this.http.get<Producto>(`${this.apiUrl}/productos/${sku}`);
+    return this.http.get<ApiResult<Producto>>(`${this.apiUrl}/products/${sku}`).pipe(map((r) => r.data!));
   }
 
+  /** Un solo producto — la usa la pantalla de Escaneo, que siempre resuelve exactamente un producto antes de registrar. */
   registrarMovimiento(payload: RegistrarMovimientoPayload): Observable<MovimientoInventario> {
     if (this.auth.enModoDemo()) {
       const producto = this._productos().find((p) => p.sku === payload.sku);
+      const proveedor = payload.supplierId ? this.proveedoresService.proveedores().find((p) => p.id === payload.supplierId) : undefined;
       const movimiento: MovimientoInventario = {
-        fecha: new Date().toISOString(),
-        sku: payload.sku,
-        producto: producto?.nombre ?? payload.sku,
-        tipo: payload.tipo,
-        cantidad: payload.cantidad,
-        motivo: payload.motivo,
-        usuario: this.auth.usuario()?.nombre ?? 'Usuario demo',
+        id: crypto.randomUUID(),
+        productId: producto?.id ?? payload.sku,
+        productSku: payload.sku,
+        productName: producto?.name ?? payload.sku,
+        type: payload.type,
+        quantity: payload.quantity,
+        reason: payload.reason,
+        notes: payload.notes,
+        supplierId: payload.supplierId,
+        supplierName: proveedor?.name,
+        performedByName: this.auth.usuario()?.nombre ?? 'Usuario demo',
+        createdAt: new Date().toISOString(),
       };
       this._movimientosDemo = [movimiento, ...this._movimientosDemo];
       this._movimientos.update((lista) => [movimiento, ...lista]);
       if (producto) this._productos.update((lista) => lista.map((p) => (p.sku === payload.sku ? aplicarMovimiento(p, movimiento) : p)));
       return of(movimiento);
     }
-    return this.http.post<MovimientoInventario>(`${this.apiUrl}/movimientos`, payload).pipe(
+    return this.http.post<ApiResult<MovimientoInventario>>(`${this.apiUrl}/inventory-movements`, payload).pipe(
+      map((r) => r.data!),
       tap((movimiento) => {
         this._movimientos.update((lista) => [movimiento, ...lista]);
         this._productos.update((lista) => lista.map((p) => (p.sku === payload.sku ? aplicarMovimiento(p, movimiento) : p)));
@@ -104,33 +115,106 @@ export class InventarioService {
     );
   }
 
+  /** Varios productos a la vez, mismo tipo/motivo/proveedor — la usa la pantalla de Ajustes. */
+  registrarMovimientos(payload: RegistrarMovimientosLotePayload): Observable<MovimientoInventario[]> {
+    if (this.auth.enModoDemo()) {
+      const proveedor = payload.supplierId ? this.proveedoresService.proveedores().find((p) => p.id === payload.supplierId) : undefined;
+      const movimientos: MovimientoInventario[] = payload.items.map((item) => {
+        const producto = this._productos().find((p) => p.sku === item.sku);
+        return {
+          id: crypto.randomUUID(),
+          productId: producto?.id ?? item.sku,
+          productSku: item.sku,
+          productName: producto?.name ?? item.sku,
+          type: payload.type,
+          quantity: item.quantity,
+          reason: payload.reason,
+          notes: payload.notes,
+          supplierId: payload.supplierId,
+          supplierName: proveedor?.name,
+          performedByName: this.auth.usuario()?.nombre ?? 'Usuario demo',
+          createdAt: new Date().toISOString(),
+        };
+      });
+      this._movimientosDemo = [...movimientos, ...this._movimientosDemo];
+      this._movimientos.update((lista) => [...movimientos, ...lista]);
+      this._productos.update((lista) =>
+        lista.map((p) => {
+          const movimiento = movimientos.find((m) => m.productSku === p.sku);
+          return movimiento ? aplicarMovimiento(p, movimiento) : p;
+        }),
+      );
+      return of(movimientos);
+    }
+    return this.http.post<ApiResult<MovimientoInventario[]>>(`${this.apiUrl}/inventory-movements/batch`, payload).pipe(
+      map((r) => r.data ?? []),
+      tap((movimientos) => {
+        this._movimientos.update((lista) => [...movimientos, ...lista]);
+        this._productos.update((lista) =>
+          lista.map((p) => {
+            const movimiento = movimientos.find((m) => m.productSku === p.sku);
+            return movimiento ? aplicarMovimiento(p, movimiento) : p;
+          }),
+        );
+      }),
+    );
+  }
+
   crearProducto(payload: NuevoProductoPayload): Observable<Producto> {
     if (this.auth.enModoDemo()) {
-      const producto: Producto = { ...payload, estado: estadoDeStock(payload.stockActual, payload.stockMinimo) };
+      const categoria = this.categoriasService.categorias().find((c) => c.id === payload.categoryId);
+      const proveedoresPorId = new Map(this.proveedoresService.proveedores().map((p) => [p.id, p]));
+      const producto: Producto = {
+        id: crypto.randomUUID(),
+        sku: payload.sku,
+        name: payload.name,
+        categoryId: payload.categoryId,
+        categoryName: categoria?.name ?? '',
+        brand: payload.brand,
+        storageLocation: payload.storageLocation,
+        stockQuantity: payload.initialStock,
+        minStock: payload.minStock,
+        status: estadoDeStock(payload.initialStock, payload.minStock),
+        salePrice: payload.salePrice,
+        unitOfMeasure: payload.unitOfMeasure,
+        unitsPerBox: payload.unitsPerBox,
+        suppliers: payload.suppliers.map((s) => ({
+          supplierId: s.supplierId,
+          supplierName: proveedoresPorId.get(s.supplierId)?.name ?? '',
+          purchaseCost: s.purchaseCost,
+          isPrimary: s.isPrimary,
+        })),
+        compatibleVehicleCount: 0,
+        hasLifecycleReminder: payload.hasLifecycleReminder ?? false,
+        lifecycleCategory: payload.lifecycleCategory,
+        lifecycleReminderWindowDays: payload.lifecycleReminderWindowDays,
+        createdAt: new Date().toISOString(),
+      };
       this._productos.update((lista) => [producto, ...lista]);
       return of(producto);
     }
-    return this.http
-      .post<Producto>(`${this.apiUrl}/productos`, payload)
-      .pipe(tap((producto) => this._productos.update((lista) => [producto, ...lista])));
+    return this.http.post<ApiResult<Producto>>(`${this.apiUrl}/products`, payload).pipe(
+      map((r) => r.data!),
+      tap((producto) => this._productos.update((lista) => [producto, ...lista])),
+    );
   }
 }
 
-const SIGNO_POR_TIPO: Record<MovimientoInventario['tipo'], 1 | -1> = {
-  entrada: 1,
-  'ajuste-positivo': 1,
-  salida: -1,
-  'ajuste-negativo': -1,
-  merma: -1,
+const SIGNO_POR_TIPO: Record<MovimientoInventario['type'], 1 | -1> = {
+  Inflow: 1,
+  PositiveAdjustment: 1,
+  Outflow: -1,
+  NegativeAdjustment: -1,
+  Shrinkage: -1,
 };
 
 function aplicarMovimiento(producto: Producto, movimiento: MovimientoInventario): Producto {
-  const stockActual = Math.max(0, producto.stockActual + SIGNO_POR_TIPO[movimiento.tipo] * movimiento.cantidad);
-  return { ...producto, stockActual, estado: estadoDeStock(stockActual, producto.stockMinimo) };
+  const stockQuantity = Math.max(0, producto.stockQuantity + SIGNO_POR_TIPO[movimiento.type] * movimiento.quantity);
+  return { ...producto, stockQuantity, status: estadoDeStock(stockQuantity, producto.minStock) };
 }
 
-function estadoDeStock(stockActual: number, stockMinimo: number): Producto['estado'] {
-  if (stockActual <= 0) return 'agotado';
-  if (stockActual <= stockMinimo) return 'stock-bajo';
-  return 'disponible';
+function estadoDeStock(stockQuantity: number, minStock: number): Producto['status'] {
+  if (stockQuantity <= 0) return 'OutOfStock';
+  if (stockQuantity <= minStock) return 'LowStock';
+  return 'Available';
 }

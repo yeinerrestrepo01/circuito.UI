@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -35,18 +36,20 @@ export class LoginComponent {
       .login(this.form.getRawValue())
       .pipe(finalize(() => this.enviando.set(false)))
       .subscribe({
-        next: () => {
-          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/inventario';
-          void this.router.navigateByUrl(returnUrl);
-        },
-        error: () => this.error.set('Correo o contraseña incorrectos.'),
+        next: () => void this.router.navigateByUrl(this.destinoTrasIngresar()),
+        error: (err: HttpErrorResponse) => this.error.set(err.error?.message ?? 'Correo o contraseña incorrectos.'),
       });
   }
 
-  /** TEMPORAL: mientras no exista `POST /auth/login`, ver `AuthService.entrarModoDemo`. */
+  /** TEMPORAL: para navegar la app sin depender de que Circuito.API esté corriendo. */
   entrarModoDemo(): void {
     this.auth.entrarModoDemo();
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/inventario';
-    void this.router.navigateByUrl(returnUrl);
+    void this.router.navigateByUrl(this.destinoTrasIngresar());
+  }
+
+  /** El superadmin no tiene nada que hacer en /inventario (no pertenece a ninguna empresa). */
+  private destinoTrasIngresar(): string {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    return returnUrl ?? (this.auth.esSuperadmin() ? '/admin' : '/inventario');
   }
 }

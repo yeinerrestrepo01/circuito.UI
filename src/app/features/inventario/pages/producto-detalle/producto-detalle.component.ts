@@ -9,14 +9,15 @@ import { CopPipe } from '../../../../shared/pipes/cop.pipe';
 import { FechaCortaPipe } from '../../../../shared/pipes/fecha-corta.pipe';
 import { LABEL_TIPO_MOVIMIENTO, MovimientoInventario } from '../../models/movimiento.model';
 import { Producto } from '../../models/producto.model';
+import { ProductoProveedor } from '../../models/proveedor.model';
 import { InventarioService } from '../../services/inventario.service';
 
 type Pestana = 'movimientos' | 'compatibilidad' | 'recordatorios';
 
-const ESTADO_LABEL: Record<Producto['estado'], string> = {
-  disponible: 'Disponible',
-  'stock-bajo': 'Stock bajo',
-  agotado: 'Agotado',
+const ESTADO_LABEL: Record<Producto['status'], string> = {
+  Available: 'Disponible',
+  LowStock: 'Stock bajo',
+  OutOfStock: 'Agotado',
 };
 
 @Component({
@@ -35,16 +36,23 @@ export class ProductoDetalleComponent implements OnInit {
   readonly pestanaActiva = signal<Pestana>('movimientos');
 
   readonly estadoBadge = computed<EstadoBadge>(() => {
-    const estado = this.producto()?.estado;
-    return estado === 'agotado' ? 'danger' : estado === 'stock-bajo' ? 'warning' : 'success';
+    const estado = this.producto()?.status;
+    return estado === 'OutOfStock' ? 'danger' : estado === 'LowStock' ? 'warning' : 'success';
   });
-  readonly estadoLabel = computed(() => ESTADO_LABEL[this.producto()?.estado ?? 'disponible']);
+  readonly estadoLabel = computed(() => ESTADO_LABEL[this.producto()?.status ?? 'Available']);
+  /** Primero de `suppliers` — el backend ya los ordena con el principal primero (ver ProductMapper.ToSupplierDtos). */
+  readonly proveedorPrincipal = computed(() => this.producto()?.suppliers[0] ?? null);
 
   readonly columnas: ColumnDef<MovimientoInventario>[] = [
-    { key: 'fecha', header: 'Fecha' },
-    { key: 'tipo', header: 'Tipo' },
-    { key: 'cantidad', header: 'Cantidad' },
-    { key: 'usuario', header: 'Usuario' },
+    { key: 'createdAt', header: 'Fecha' },
+    { key: 'type', header: 'Tipo' },
+    { key: 'quantity', header: 'Cantidad' },
+    { key: 'performedByName', header: 'Usuario' },
+  ];
+
+  readonly columnasProveedores: ColumnDef<ProductoProveedor>[] = [
+    { key: 'supplierName', header: 'Proveedor' },
+    { key: 'purchaseCost', header: 'Costo de compra' },
   ];
 
   ngOnInit(): void {
@@ -58,15 +66,15 @@ export class ProductoDetalleComponent implements OnInit {
     this.pestanaActiva.set(pestana);
   }
 
-  colorTipo(tipo: MovimientoInventario['tipo']): string {
-    return tipo === 'entrada' || tipo === 'ajuste-positivo'
+  colorTipo(tipo: MovimientoInventario['type']): string {
+    return tipo === 'Inflow' || tipo === 'PositiveAdjustment'
       ? 'var(--color-success)'
-      : tipo === 'ajuste-negativo'
+      : tipo === 'NegativeAdjustment'
         ? 'var(--color-warning)'
         : 'var(--color-danger)';
   }
 
-  labelTipo(tipo: MovimientoInventario['tipo']): string {
+  labelTipo(tipo: MovimientoInventario['type']): string {
     return LABEL_TIPO_MOVIMIENTO[tipo];
   }
 }

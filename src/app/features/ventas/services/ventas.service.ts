@@ -24,7 +24,7 @@ export class VentasService {
       if (existente) {
         return items.map((i) => (i.sku === producto.sku ? { ...i, cantidad: i.cantidad + 1 } : i));
       }
-      return [...items, { sku: producto.sku, producto: producto.nombre, cantidad: 1, precio: producto.precioVenta }];
+      return [...items, { sku: producto.sku, producto: producto.name, cantidad: 1, precio: producto.salePrice }];
     });
   }
 

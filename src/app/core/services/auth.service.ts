@@ -1,20 +1,24 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { map, tap } from 'rxjs';
 import { API_URL } from '../config/api-url.token';
+import { ApiResult } from '../models/api-result.model';
 
 const TOKEN_KEY = 'circuito.token';
 const MODO_DEMO_KEY = 'circuito.modoDemo';
 
-export type RolUsuario = 'superadmin' | 'admin' | 'operador' | string;
+/** Mismo catálogo que Circuito.API/src/Circuito.Domain/Enums/UserType.cs — un solo rol por usuario, incluido Superadmin (ya no es un claim booleano aparte). */
+export type TipoUsuario = 'Superadmin' | 'CompanyAdmin' | 'Manager' | 'LocationAdmin' | 'Salesperson' | 'WarehouseStaff';
 
 interface JwtPayload {
   sub?: string;
   email?: string;
-  nombre?: string;
-  almacen?: string;
-  rol?: RolUsuario;
+  name?: string;
+  companyId?: string;
+  companyName?: string;
+  userType?: TipoUsuario;
+  locationId?: string;
   exp?: number;
 }
 
@@ -22,18 +26,19 @@ export interface UsuarioSesion {
   id: string;
   email: string;
   nombre: string;
-  almacen: string;
-  rol: RolUsuario;
   iniciales: string;
+  esSuperadmin: boolean;
+  /** null si es superadmin (no pertenece a ninguna empresa). */
+  empresaId: string | null;
+  empresaNombre: string;
+  tipoUsuario: TipoUsuario | null;
+  /** null si el rol es de toda la empresa (CompanyAdmin | Manager). */
+  sedeId: string | null;
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
-}
-
-interface LoginResponse {
-  token: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -49,14 +54,17 @@ export class AuthService {
     const payload = decodificar(this._token());
     if (!payload) return null;
     const email = payload.email ?? payload.sub ?? '';
-    const nombre = payload.nombre ?? email;
+    const nombre = payload.name ?? email;
     return {
       id: payload.sub ?? email,
       email,
       nombre,
-      almacen: payload.almacen ?? '',
-      rol: payload.rol ?? 'operador',
       iniciales: iniciales(nombre),
+      esSuperadmin: payload.userType === 'Superadmin',
+      empresaId: payload.companyId ?? null,
+      empresaNombre: payload.companyName ?? '',
+      tipoUsuario: payload.userType ?? null,
+      sedeId: payload.locationId ?? null,
     };
   });
 
@@ -67,12 +75,13 @@ export class AuthService {
   }
 
   esSuperadmin(): boolean {
-    return this.tieneSesionValida() && this.usuario()?.rol === 'superadmin';
+    return this.tieneSesionValida() && this.usuario()?.esSuperadmin === true;
   }
 
   login(credenciales: LoginRequest) {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, credenciales).pipe(
-      tap(({ token }) => {
+    return this.http.post<ApiResult<{ token: string }>>(`${this.apiUrl}/auth/login`, credenciales).pipe(
+      map((respuesta) => respuesta.data!.token),
+      tap((token) => {
         guardarToken(token);
         this._token.set(token);
       }),
@@ -80,12 +89,12 @@ export class AuthService {
   }
 
   /**
-   * TEMPORAL: crea una sesión local sin backend, para poder navegar la app mientras no existe
-   * `POST /auth/login`. El token no está firmado (no sirve contra una API real) y expira en 8h.
-   * Quitar este método (y el botón "Modo demo" del login) en cuanto haya autenticación real.
+   * TEMPORAL: crea una sesión local sin backend, para poder navegar la app sin depender de que
+   * `Circuito.API` esté corriendo. El token no está firmado (no sirve contra la API real) y
+   * expira en 8h. Quitar este método (y el botón "Modo demo" del login) cuando ya no haga falta.
    */
-  entrarModoDemo(rol: RolUsuario = 'admin'): void {
-    const token = crearTokenDemo(rol);
+  entrarModoDemo(): void {
+    const token = crearTokenDemo();
     guardarToken(token);
     this._token.set(token);
     try {
@@ -151,14 +160,16 @@ function base64UrlDe(objeto: unknown): string {
 }
 
 /** JWT con firma vacía: solo para decodificar localmente, nunca se envía a una API real como válido. */
-function crearTokenDemo(rol: RolUsuario): string {
+function crearTokenDemo(): string {
   const header = base64UrlDe({ alg: 'none', typ: 'JWT' });
   const payload = base64UrlDe({
     sub: 'demo',
     email: 'demo@autoelectricoleos.com',
-    nombre: 'Usuario Demo',
-    almacen: 'Auto Eléctrico Leos',
-    rol,
+    name: 'Usuario Demo',
+    companyId: 'demo-empresa',
+    companyName: 'Auto Eléctrico Leos',
+    userType: 'CompanyAdmin',
+    locationId: undefined,
     exp: Math.floor(Date.now() / 1000) + 8 * 60 * 60,
   } satisfies JwtPayload);
   return `${header}.${payload}.demo`;

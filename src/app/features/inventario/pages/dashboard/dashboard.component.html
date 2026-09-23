@@ -11,6 +11,8 @@
         </svg>
         <input type="text" placeholder="Buscar referencia o nombre" aria-label="Buscar" />
       </label>
+      <a routerLink="/inventario/proveedores" class="btn">Proveedores</a>
+      <a routerLink="/inventario/categorias" class="btn">Categorías</a>
       <a routerLink="/inventario/ajustes" class="btn btn-primary">Registrar movimiento</a>
     </div>
   </div>
@@ -32,9 +34,9 @@
         <ng-template appCellDef="sku" let-p>
           <a [routerLink]="['/inventario', p.sku]" class="dashboard-fila-link">{{ p.sku }}</a>
         </ng-template>
-        <ng-template appCellDef="stockActual" let-p>{{ p.stockActual }}</ng-template>
-        <ng-template appCellDef="estado" let-p>
-          <app-status-badge [status]="estadoBadge(p.estado)" [label]="estadoLabel(p.estado)" />
+        <ng-template appCellDef="stockQuantity" let-p>{{ p.stockQuantity }}</ng-template>
+        <ng-template appCellDef="status" let-p>
+          <app-status-badge [status]="estadoBadge(p.status)" [label]="estadoLabel(p.status)" />
         </ng-template>
       </app-data-table>
     </app-card>

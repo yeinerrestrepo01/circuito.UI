@@ -1,0 +1,6 @@
+.proveedores-form__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.proveedores-form__acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+@media (max-width: 700px) {
+  .proveedores-form__grid { grid-template-columns: 1fr; }
+}

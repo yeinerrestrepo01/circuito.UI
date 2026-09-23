@@ -9,8 +9,14 @@
   </div>
 
   <div class="escaneo__body">
+    <!--
+      El <video> vive siempre en el DOM (nunca detrás de un @if) y solo se oculta con [hidden]:
+      así el @ViewChild('video') del componente ya tiene una referencia válida ANTES de que
+      iniciarEscaneo() la necesite. Ponerlo detrás de un @if(escaneando()) rompe el flujo, porque
+      escaneando() todavía es false en el momento en que se pide la referencia.
+    -->
+    <video #video class="escaneo__video" [hidden]="!escaneando()" muted playsinline></video>
     @if (escaneando()) {
-      <video #video class="escaneo__video" muted playsinline></video>
       <button type="button" class="btn" (click)="detenerEscaneo()">Cancelar escaneo</button>
     } @else if (soportaCamara) {
       <button type="button" class="escaneo__scan-btn" (click)="iniciarEscaneo()">
@@ -37,9 +43,9 @@
       <app-card style="padding:12px; display:flex; gap:12px;">
         <div class="escaneo__miniatura"></div>
         <div>
-          <div style="font-size:14px; font-weight:500;">{{ p.nombre }}</div>
-          <div class="muted" style="font-size:12px; margin-top:2px;">Ubicación {{ p.ubicacion }}</div>
-          <div style="font-size:12px; margin-top:2px; color:var(--color-warning);">Stock actual: {{ p.stockActual }} unidades</div>
+          <div style="font-size:14px; font-weight:500;">{{ p.name }}</div>
+          <div class="muted" style="font-size:12px; margin-top:2px;">Ubicación {{ p.storageLocation }}</div>
+          <div style="font-size:12px; margin-top:2px; color:var(--color-warning);">Stock actual: {{ p.stockQuantity }} unidades</div>
         </div>
       </app-card>
 
@@ -50,18 +56,18 @@
             <button
               type="button"
               class="btn"
-              [class.btn-primary]="form.controls.tipo.value === 'entrada'"
+              [class.btn-primary]="form.controls.tipo.value === 'Inflow'"
               style="flex-grow:1; height:44px;"
-              (click)="seleccionarTipo('entrada')"
+              (click)="seleccionarTipo('Inflow')"
             >
               Entrada
             </button>
             <button
               type="button"
               class="btn"
-              [class.btn-primary]="form.controls.tipo.value === 'salida'"
+              [class.btn-primary]="form.controls.tipo.value === 'Outflow'"
               style="flex-grow:1; height:44px;"
-              (click)="seleccionarTipo('salida')"
+              (click)="seleccionarTipo('Outflow')"
             >
               Salida
             </button>

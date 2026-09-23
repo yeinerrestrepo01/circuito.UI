@@ -21,7 +21,7 @@
       <app-card class="red-buscador__resultados">
         @for (p of resultadosBusqueda(); track p.sku) {
           <button type="button" class="red-buscador__resultado" (click)="seleccionar(p.sku)">
-            <span class="mono">{{ p.sku }}</span><span>{{ p.nombre }}</span>
+            <span class="mono">{{ p.sku }}</span><span>{{ p.name }}</span>
           </button>
         }
       </app-card>

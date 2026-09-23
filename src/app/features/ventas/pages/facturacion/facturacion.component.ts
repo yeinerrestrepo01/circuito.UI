@@ -34,7 +34,7 @@ export class FacturacionComponent implements OnInit {
     if (!termino) return [];
     return this.inventarioService
       .productos()
-      .filter((p) => p.sku.toLowerCase().includes(termino) || p.nombre.toLowerCase().includes(termino))
+      .filter((p) => p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino))
       .slice(0, 5);
   });
 

@@ -19,8 +19,8 @@
           @for (p of resultadosBusqueda(); track p.sku) {
             <button type="button" class="facturacion__resultado" (click)="agregar(p.sku)">
               <span class="mono">{{ p.sku }}</span>
-              <span>{{ p.nombre }}</span>
-              <span class="muted">{{ p.precioVenta | cop }}</span>
+              <span>{{ p.name }}</span>
+              <span class="muted">{{ p.salePrice | cop }}</span>
             </button>
           }
         </app-card>

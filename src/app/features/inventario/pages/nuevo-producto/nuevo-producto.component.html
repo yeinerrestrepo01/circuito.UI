@@ -17,26 +17,94 @@
       <app-card padded>
         <div class="nuevo-producto__titulo">Información general</div>
         <div class="nuevo-producto__grid-2">
-          <app-form-field label="Referencia (SKU)">
-            <input type="text" formControlName="sku" placeholder="Ej. BAT-12V-80AH" style="font-family:var(--font-mono);" />
-          </app-form-field>
           <app-form-field label="Nombre del producto">
             <input type="text" formControlName="nombre" placeholder="Ej. Batería 12V 80Ah" />
-          </app-form-field>
-          <app-form-field label="Categoría">
-            <select formControlName="categoria">
-              @for (c of categorias; track c) { <option [value]="c">{{ c }}</option> }
-            </select>
           </app-form-field>
           <app-form-field label="Marca">
             <input type="text" formControlName="marca" placeholder="Ej. Mac" />
           </app-form-field>
+          <app-form-field label="Categoría">
+            <select formControlName="categoryId">
+              @for (c of categorias(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+            </select>
+          </app-form-field>
+          <app-form-field label="Referencia (SKU)">
+            <div class="nuevo-producto__sku">
+              <span class="mono">{{ skuGenerado() || '—' }}</span>
+              <button type="button" class="btn btn-sm" (click)="regenerarCodigo()" [disabled]="!skuGenerado()" title="Generar otro código">
+                ↻
+              </button>
+            </div>
+          </app-form-field>
           <app-form-field label="Unidad de medida">
             <select formControlName="unidadMedida">
-              @for (u of unidades; track u) { <option [value]="u">{{ u }}</option> }
+              @for (u of unidades; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
+            </select>
+          </app-form-field>
+          @if (esPorCaja() === 'Box') {
+            <app-form-field label="Unidades por caja">
+              <input type="number" formControlName="unidadesPorCaja" min="1" placeholder="Ej. 12" />
+            </app-form-field>
+          }
+          <app-form-field label="Proveedor (opcional)">
+            <select formControlName="proveedorId">
+              <option value="">Sin proveedor por ahora</option>
+              @for (p of proveedores(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
             </select>
           </app-form-field>
         </div>
+        <div class="muted" style="font-size:11px; margin-top:8px;">
+          La referencia se arma sola a partir de la categoría y la marca (categoría-marca-código); usa ↻ si necesitas otro código.
+        </div>
+        @if (esPorCaja() === 'Box') {
+          <div class="muted" style="font-size:11px; margin-top:4px;">
+            El stock se sigue contando por unidad; esto solo define cuántas unidades trae cada caja para que las compras y ventas por caja
+            actualicen el inventario correctamente.
+          </div>
+        }
+        @if (categorias().length === 0) {
+          <div class="muted" style="font-size:12px; margin-top:10px;">
+            Aún no hay categorías. <a routerLink="/inventario/categorias">Crea la primera</a>.
+          </div>
+        }
+        @if (proveedores().length === 0) {
+          <div class="muted" style="font-size:12px; margin-top:4px;">
+            Aún no hay proveedores. <a routerLink="/inventario/proveedores">Crea el primero</a>.
+          </div>
+        }
+      </app-card>
+
+      <app-card padded>
+        <div class="nuevo-producto__titulo">Inventario inicial</div>
+        <div class="nuevo-producto__campo-solo">
+          <app-form-field label="Ubicación">
+            <input type="text" formControlName="ubicacion" placeholder="Ej. A-03-05" style="font-family:var(--font-mono);" />
+          </app-form-field>
+        </div>
+        <div class="nuevo-producto__grid-2">
+          <app-form-field label="Stock inicial">
+            <input type="number" formControlName="stockInicial" min="0" />
+          </app-form-field>
+          <app-form-field label="Stock mínimo">
+            <input type="number" formControlName="stockMinimo" min="0" />
+          </app-form-field>
+        </div>
+      </app-card>
+
+      <app-card padded>
+        <div class="nuevo-producto__titulo">Precio de venta</div>
+        <div class="nuevo-producto__campo-solo">
+          <app-form-field label="Precio de venta">
+            <input type="number" formControlName="precioVenta" placeholder="450000" />
+          </app-form-field>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="flex-col gap-4 nuevo-producto__col">
+      <app-card padded flexCol class="nuevo-producto__imagen">
+        <div class="nuevo-producto__dropzone">Arrastra una imagen o haz clic</div>
+        <span class="muted" style="font-size:11px;">JPG o PNG, máx. 5 MB</span>
       </app-card>
 
       <app-card padded>
@@ -65,49 +133,6 @@
             <select formControlName="vidaUtilVentana">
               @for (w of ventanasAviso; track w.label) { <option [value]="w.label">{{ w.label }}</option> }
             </select>
-          </app-form-field>
-        </div>
-      </app-card>
-    </div>
-
-    <div class="flex-col gap-4 nuevo-producto__col">
-      <app-card padded flexCol class="nuevo-producto__imagen">
-        <div class="nuevo-producto__dropzone">Arrastra una imagen o haz clic</div>
-        <span class="muted" style="font-size:11px;">JPG o PNG, máx. 5 MB</span>
-      </app-card>
-
-      <app-card padded>
-        <div class="nuevo-producto__titulo">Inventario inicial</div>
-        <div class="nuevo-producto__campo-solo">
-          <app-form-field label="Ubicación">
-            <input type="text" formControlName="ubicacion" placeholder="Ej. A-03-05" style="font-family:var(--font-mono);" />
-          </app-form-field>
-        </div>
-        <div class="nuevo-producto__grid-2">
-          <app-form-field label="Stock inicial">
-            <input type="number" formControlName="stockInicial" min="0" />
-          </app-form-field>
-          <app-form-field label="Stock mínimo">
-            <input type="number" formControlName="stockMinimo" min="0" />
-          </app-form-field>
-        </div>
-      </app-card>
-
-      <app-card padded>
-        <div class="nuevo-producto__titulo">Compra y venta</div>
-        <div class="nuevo-producto__campo-solo">
-          <app-form-field label="Proveedor principal">
-            <select formControlName="proveedorPrincipal">
-              @for (p of proveedores; track p) { <option [value]="p">{{ p }}</option> }
-            </select>
-          </app-form-field>
-        </div>
-        <div class="nuevo-producto__grid-2">
-          <app-form-field label="Costo de compra">
-            <input type="number" formControlName="costoCompra" placeholder="310000" />
-          </app-form-field>
-          <app-form-field label="Precio de venta">
-            <input type="number" formControlName="precioVenta" placeholder="450000" />
           </app-form-field>
         </div>
       </app-card>

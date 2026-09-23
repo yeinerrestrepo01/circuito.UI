@@ -1,0 +1,36 @@
+<div class="page">
+  <div class="content-header">
+    <div>
+      <div class="breadcrumb"><a routerLink="/inventario">Inventario</a><span>/</span><span>Categorías</span></div>
+      <h1 class="page-title page-title--sm">Categorías de producto</h1>
+    </div>
+    @if (!mostrarFormulario()) {
+      <button class="btn btn-primary" (click)="abrirFormulario()">+ Nueva categoría</button>
+    }
+  </div>
+
+  @if (mostrarFormulario()) {
+    <app-card padded class="categorias-form">
+      <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <div style="font-size:15px; font-weight:500; margin-bottom:14px;">{{ editando() ? 'Editar categoría' : 'Nueva categoría' }}</div>
+        <app-form-field label="Nombre" inputId="cat-nombre">
+          <input id="cat-nombre" type="text" formControlName="name" placeholder="Ej. Batería" />
+        </app-form-field>
+        <div class="categorias-form__acciones">
+          <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Guardar categoría' }}
+          </button>
+        </div>
+      </form>
+    </app-card>
+  }
+
+  <app-card>
+    <app-data-table [columns]="columnas" [rows]="categorias()" emptyMessage="Aún no hay categorías creadas.">
+      <ng-template appCellDef="acciones" let-c>
+        <button type="button" class="btn btn-sm" (click)="editar(c)">Editar</button>
+      </ng-template>
+    </app-data-table>
+  </app-card>
+</div>

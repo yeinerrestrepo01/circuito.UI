@@ -25,10 +25,10 @@ const RECORDATORIOS_RECIENTES: Recordatorio[] = [
   { cliente: 'Diego Ruiz', producto: 'Motor de arranque', detalle: 'Rebotado', color: 'danger' },
 ];
 
-const ESTADO_LABEL: Record<Producto['estado'], string> = {
-  disponible: 'Disponible',
-  'stock-bajo': 'Stock bajo',
-  agotado: 'Agotado',
+const ESTADO_LABEL: Record<Producto['status'], string> = {
+  Available: 'Disponible',
+  LowStock: 'Stock bajo',
+  OutOfStock: 'Agotado',
 };
 
 @Component({
@@ -49,17 +49,17 @@ export class DashboardComponent implements OnInit {
   private readonly inventarioService = inject(InventarioService);
 
   readonly productosConAlerta = this.inventarioService.productosConAlerta;
-  readonly quiebresDeStock = computed(() => this.productosConAlerta().filter((p) => p.estado === 'agotado').length);
+  readonly quiebresDeStock = computed(() => this.productosConAlerta().filter((p) => p.status === 'OutOfStock').length);
   readonly recordatorios = RECORDATORIOS_RECIENTES;
   /** Estático hasta que exista un endpoint de KPIs agregados; replica el valor del mockup. */
   readonly ventasDelMes = '$18.4M';
 
   readonly columnas: ColumnDef<Producto>[] = [
     { key: 'sku', header: 'Referencia', mono: true },
-    { key: 'nombre', header: 'Producto' },
-    { key: 'ubicacion', header: 'Ubicación' },
-    { key: 'stockActual', header: 'Stock' },
-    { key: 'estado', header: 'Estado' },
+    { key: 'name', header: 'Producto' },
+    { key: 'storageLocation', header: 'Ubicación' },
+    { key: 'stockQuantity', header: 'Stock' },
+    { key: 'status', header: 'Estado' },
   ];
 
   ngOnInit(): void {
@@ -68,11 +68,11 @@ export class DashboardComponent implements OnInit {
     this.inventarioService.cargarProductos().subscribe({ error: () => {} });
   }
 
-  estadoBadge(estado: Producto['estado']): EstadoBadge {
-    return estado === 'agotado' ? 'danger' : estado === 'stock-bajo' ? 'warning' : 'success';
+  estadoBadge(estado: Producto['status']): EstadoBadge {
+    return estado === 'OutOfStock' ? 'danger' : estado === 'LowStock' ? 'warning' : 'success';
   }
 
-  estadoLabel(estado: Producto['estado']): string {
+  estadoLabel(estado: Producto['status']): string {
     return ESTADO_LABEL[estado];
   }
 }

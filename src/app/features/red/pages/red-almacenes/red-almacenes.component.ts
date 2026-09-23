@@ -44,7 +44,7 @@ export class RedAlmacenesComponent implements OnInit {
     if (!termino) return [];
     return this.inventarioService
       .productos()
-      .filter((p) => p.sku.toLowerCase().includes(termino) || p.nombre.toLowerCase().includes(termino))
+      .filter((p) => p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino))
       .slice(0, 5);
   });
 
@@ -72,7 +72,7 @@ export class RedAlmacenesComponent implements OnInit {
   seleccionar(sku: string): void {
     const producto = this.inventarioService.productos().find((p) => p.sku === sku);
     if (!producto) return;
-    this.productoSeleccionado.set({ sku: producto.sku, nombre: producto.nombre });
+    this.productoSeleccionado.set({ sku: producto.sku, nombre: producto.name });
     this.busqueda.set('');
     this.redService.cargarDisponibilidad(sku).subscribe({ error: () => {} });
   }

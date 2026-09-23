@@ -8,10 +8,10 @@
       <div class="detalle-header__imagen"></div>
       <div class="detalle-header__info">
         <div style="display:flex; align-items:center; gap:10px;">
-          <h1 class="page-title" style="font-size:24px;">{{ p.nombre }}</h1>
+          <h1 class="page-title" style="font-size:24px;">{{ p.name }}</h1>
           <app-status-badge [status]="estadoBadge()" [label]="estadoLabel()" />
         </div>
-        <div class="mono" style="margin-top:4px;">{{ p.sku }} · Ubicación {{ p.ubicacion }}</div>
+        <div class="mono" style="margin-top:4px;">{{ p.sku }} · {{ p.categoryName }} · Ubicación {{ p.storageLocation }}</div>
       </div>
       <a [routerLink]="['/inventario/ajustes']" [queryParams]="{ sku: p.sku }" class="btn btn-primary">Registrar movimiento</a>
     </div>
@@ -19,25 +19,45 @@
     <div class="detalle-metricas">
       <app-card padded>
         <div class="muted" style="font-size:12px;">Stock actual</div>
-        <div class="detalle-metricas__valor" [style.color]="p.estado === 'disponible' ? 'inherit' : 'var(--color-warning)'">{{ p.stockActual }}</div>
+        <div class="detalle-metricas__valor" [style.color]="p.status === 'Available' ? 'inherit' : 'var(--color-warning)'">{{ p.stockQuantity }}</div>
       </app-card>
       <app-card padded>
         <div class="muted" style="font-size:12px;">Stock mínimo</div>
-        <div class="detalle-metricas__valor">{{ p.stockMinimo }}</div>
+        <div class="detalle-metricas__valor">{{ p.minStock }}</div>
       </app-card>
       <app-card padded>
         <div class="muted" style="font-size:12px;">Precio</div>
-        <div class="detalle-metricas__valor">{{ p.precioVenta | cop }}</div>
+        <div class="detalle-metricas__valor">{{ p.salePrice | cop }}</div>
       </app-card>
       <app-card padded>
         <div class="muted" style="font-size:12px;">Proveedor principal</div>
-        <div class="detalle-metricas__valor detalle-metricas__valor--sm">{{ p.proveedorPrincipal ?? '—' }}</div>
+        @if (proveedorPrincipal(); as principal) {
+          <div class="detalle-metricas__valor detalle-metricas__valor--sm">{{ principal.supplierName }}</div>
+          @if (p.suppliers.length > 1) {
+            <div class="muted" style="font-size:11px;">+{{ p.suppliers.length - 1 }} proveedor{{ p.suppliers.length > 2 ? 'es' : '' }} más</div>
+          }
+        } @else {
+          <div class="detalle-metricas__valor detalle-metricas__valor--sm">—</div>
+        }
       </app-card>
       <app-card padded>
         <div class="muted" style="font-size:12px;">Vehículos compatibles</div>
-        <div class="detalle-metricas__valor">{{ p.vehiculosCompatibles ?? 0 }}</div>
+        <div class="detalle-metricas__valor">{{ p.compatibleVehicleCount }}</div>
       </app-card>
     </div>
+
+    @if (p.suppliers.length > 0) {
+      <app-card padded style="margin-top:16px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:10px;">Proveedores de este producto</div>
+        <app-data-table [columns]="columnasProveedores" [rows]="p.suppliers">
+          <ng-template appCellDef="supplierName" let-s>
+            {{ s.supplierName }}
+            @if (s.isPrimary) { <span class="badge">Principal</span> }
+          </ng-template>
+          <ng-template appCellDef="purchaseCost" let-s>{{ s.purchaseCost ? (s.purchaseCost | cop) : '—' }}</ng-template>
+        </app-data-table>
+      </app-card>
+    }
   }
 
   <div class="tabs">
@@ -49,9 +69,9 @@
   @if (pestanaActiva() === 'movimientos') {
     <app-card flexCol style="flex-grow:1;">
       <app-data-table [columns]="columnas" [rows]="movimientos()" emptyMessage="Este producto no tiene movimientos registrados.">
-        <ng-template appCellDef="fecha" let-m>{{ m.fecha | fechaCorta: true }}</ng-template>
-        <ng-template appCellDef="tipo" let-m>
-          <span [style.color]="colorTipo(m.tipo)" style="font-weight:500;">{{ labelTipo(m.tipo) }}</span>
+        <ng-template appCellDef="createdAt" let-m>{{ m.createdAt | fechaCorta: true }}</ng-template>
+        <ng-template appCellDef="type" let-m>
+          <span [style.color]="colorTipo(m.type)" style="font-weight:500;">{{ labelTipo(m.type) }}</span>
         </ng-template>
       </app-data-table>
     </app-card>

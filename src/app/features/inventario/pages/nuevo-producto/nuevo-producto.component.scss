@@ -3,6 +3,18 @@
 .nuevo-producto__titulo { font-size: 14px; font-weight: 500; margin-bottom: 14px; }
 .nuevo-producto__grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .nuevo-producto__campo-solo { display: block; margin-bottom: 12px; }
+.nuevo-producto__sku {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-page);
+}
+.nuevo-producto__sku .btn { height: 26px; padding: 0 8px; }
 .nuevo-producto__pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
 .nuevo-producto__pill { background: var(--color-page); border: 1px solid var(--color-border); padding: 4px 10px; border-radius: 999px; }
 /* `display:flex; flex-direction:column` los da el input `flexCol` de app-card. */
