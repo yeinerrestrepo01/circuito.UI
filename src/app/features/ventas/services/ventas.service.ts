@@ -1,47 +1,75 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, map, tap } from 'rxjs';
 import { API_URL } from '../../../core/config/api-url.token';
-import { Producto } from '../../inventario/models/producto.model';
-import { Factura, FacturaPayload, ItemVenta, TASA_IVA } from '../models/factura.model';
+import { ApiResult } from '../../../core/models/api-result.model';
+import { CuotaPendiente, ReciboAbono, Venta, VentaPayload } from '../models/venta.model';
 
-/** Carrito de la venta en curso (un tenant factura una venta a la vez en este piloto). */
+/** Historial de ventas de la empresa — el carrito de la venta en curso vive en el propio componente
+ * de Facturación (es estado transitorio de una pantalla, no algo que otras pantallas necesiten). */
 @Injectable({ providedIn: 'root' })
 export class VentasService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${inject(API_URL)}/ventas`;
+  private readonly apiUrl = `${inject(API_URL)}/sales`;
+  private readonly installmentsUrl = `${inject(API_URL)}/installments`;
 
-  private readonly _items = signal<ItemVenta[]>([]);
-  readonly items = this._items.asReadonly();
+  private readonly _ventas = signal<Venta[]>([]);
+  readonly ventas = this._ventas.asReadonly();
 
-  readonly subtotal = computed(() => this._items().reduce((suma, i) => suma + i.cantidad * i.precio, 0));
-  readonly iva = computed(() => Math.round(this.subtotal() * TASA_IVA));
-  readonly total = computed(() => this.subtotal() + this.iva());
+  private readonly _cartera = signal<CuotaPendiente[]>([]);
+  readonly cartera = this._cartera.asReadonly();
 
-  agregarProducto(producto: Producto): void {
-    this._items.update((items) => {
-      const existente = items.find((i) => i.sku === producto.sku);
-      if (existente) {
-        return items.map((i) => (i.sku === producto.sku ? { ...i, cantidad: i.cantidad + 1 } : i));
-      }
-      return [...items, { sku: producto.sku, producto: producto.name, cantidad: 1, precio: producto.salePrice }];
-    });
+  obtenerVenta(id: string): Observable<Venta> {
+    return this.http.get<ApiResult<Venta>>(`${this.apiUrl}/${id}`).pipe(map((r) => r.data!));
   }
 
-  actualizarCantidad(sku: string, cantidad: number): void {
-    if (cantidad < 1) return;
-    this._items.update((items) => items.map((i) => (i.sku === sku ? { ...i, cantidad } : i)));
+  cargarVentas(): Observable<Venta[]> {
+    return this.http.get<ApiResult<Venta[]>>(this.apiUrl).pipe(
+      map((r) => r.data ?? []),
+      tap((ventas) => this._ventas.set(ventas)),
+    );
   }
 
-  quitarItem(sku: string): void {
-    this._items.update((items) => items.filter((i) => i.sku !== sku));
+  registrarVenta(payload: VentaPayload): Observable<Venta> {
+    return this.http.post<ApiResult<Venta>>(this.apiUrl, payload).pipe(
+      map((r) => r.data!),
+      tap((venta) => this._ventas.update((lista) => [venta, ...lista])),
+    );
   }
 
-  vaciarCarrito(): void {
-    this._items.set([]);
+  anularVenta(id: string): Observable<void> {
+    return this.http.patch<ApiResult<void>>(`${this.apiUrl}/${id}/void`, {}).pipe(
+      map(() => undefined),
+      tap(() => this._ventas.update((lista) => lista.map((v) => (v.id === id ? { ...v, status: 'Voided' as const } : v)))),
+    );
   }
 
-  generarFactura(payload: FacturaPayload): Observable<Factura> {
-    return this.http.post<Factura>(`${this.apiUrl}/facturas`, payload).pipe(tap(() => this.vaciarCarrito()));
+  /** La Cartera: todas las cuotas pendientes de cobro de todo el tenant, ordenadas por vencimiento. */
+  cargarCartera(): Observable<CuotaPendiente[]> {
+    return this.http.get<ApiResult<CuotaPendiente[]>>(`${this.installmentsUrl}/pending`).pipe(
+      map((r) => r.data ?? []),
+      tap((cartera) => this._cartera.set(cartera)),
+    );
+  }
+
+  /** Registra un abono — total o parcial — sobre una cuota. Si `monto` cubre el saldo completo, la
+   * cuota se cierra; si no, solo se reduce lo que falta y sigue apareciendo en Cartera. Devuelve el
+   * recibo del abono, para imprimirlo de inmediato. */
+  pagarCuota(installmentId: string, monto: number): Observable<ReciboAbono> {
+    return this.http.patch<ApiResult<ReciboAbono>>(`${this.installmentsUrl}/${installmentId}/pay`, { amount: monto }).pipe(
+      map((r) => r.data!),
+      tap(() =>
+        this._cartera.update((lista) =>
+          lista
+            .map((c) => (c.id === installmentId ? { ...c, paidAmount: c.paidAmount + monto, balance: c.balance - monto } : c))
+            .filter((c) => c.balance > 0),
+        ),
+      ),
+    );
+  }
+
+  /** Reabre el recibo de un abono ya registrado — lo usa la página de impresión aislada. */
+  obtenerReciboAbono(paymentId: string): Observable<ReciboAbono> {
+    return this.http.get<ApiResult<ReciboAbono>>(`${this.installmentsUrl}/payments/${paymentId}`).pipe(map((r) => r.data!));
   }
 }

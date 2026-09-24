@@ -1,0 +1,15 @@
+.venta-detalle { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.venta-detalle__acciones { display: flex; justify-content: space-between; width: 100%; max-width: 520px; }
+.venta-detalle__recibo { width: 100%; max-width: 520px; }
+.venta-detalle__cuotas { width: 100%; max-width: 520px; }
+.venta-detalle__cuota {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.venta-detalle__cuota:last-child { border-bottom: none; }
+.venta-detalle__monto-input { width: 90px; height: 30px; border: 1px solid var(--color-border); border-radius: 6px; padding: 0 8px; font-size: 14px; }

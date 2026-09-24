@@ -1,0 +1,8 @@
+<div class="imprimir-abono">
+  @if (recibo(); as r) {
+    <button type="button" class="btn btn-primary imprimir-abono__boton no-print" (click)="imprimir()">Imprimir</button>
+    <div class="imprimir-abono__hoja">
+      <app-recibo-abono [recibo]="r" [nombreNegocio]="nombreNegocio" [nitEmpresa]="nitEmpresa()" />
+    </div>
+  }
+</div>

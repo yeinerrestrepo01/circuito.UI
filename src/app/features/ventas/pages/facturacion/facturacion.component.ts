@@ -1,5 +1,7 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, ElementRef, HostListener, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { CellDefDirective } from '../../../../shared/components/data-table/cell-def.directive';
 import { ColumnDef } from '../../../../shared/components/data-table/column-def';
@@ -7,78 +9,313 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { CopPipe } from '../../../../shared/pipes/cop.pipe';
+import { formatearMiles, parsearMiles } from '../../../../shared/utils/formato';
 import { InventarioService } from '../../../inventario/services/inventario.service';
-import { ItemVenta } from '../../models/factura.model';
+import { Producto } from '../../../inventario/models/producto.model';
+import {
+  Cliente,
+  OPCIONES_TIPO_DOCUMENTO_CLIENTE,
+  TipoDocumentoCliente,
+  calcularDigitoVerificacionNit,
+} from '../../../clientes/models/cliente.model';
+import { ClientesService } from '../../../clientes/services/clientes.service';
+import { MetodoPago, OPCIONES_METODO_PAGO } from '../../models/venta.model';
 import { VentasService } from '../../services/ventas.service';
+
+/** Una línea del carrito en construcción — no es lo mismo que `LineaVenta` (esa es la línea ya
+ * registrada, del lado del backend): acá `serialNumbers` es un array de tamaño `quantity` que se va
+ * llenando, con huecos vacíos mientras no se han escrito todos. */
+interface ItemCarrito {
+  sku: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  requiresSerialNumber: boolean;
+  serialNumbers: string[];
+}
 
 @Component({
   selector: 'app-facturacion',
-  imports: [ReactiveFormsModule, CardComponent, DataTableComponent, CellDefDirective, FormFieldComponent, CopPipe],
+  imports: [RouterLink, RouterLinkActive, ReactiveFormsModule, CardComponent, DataTableComponent, CellDefDirective, FormFieldComponent, CopPipe],
   templateUrl: './facturacion.component.html',
   styleUrl: './facturacion.component.scss',
 })
 export class FacturacionComponent implements OnInit {
   private readonly ventasService = inject(VentasService);
   private readonly inventarioService = inject(InventarioService);
+  private readonly clientesService = inject(ClientesService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
 
-  readonly items = this.ventasService.items;
-  readonly subtotal = this.ventasService.subtotal;
-  readonly iva = this.ventasService.iva;
-  readonly total = this.ventasService.total;
-  readonly generando = signal(false);
-  readonly busqueda = signal('');
+  readonly opcionesMetodoPago = OPCIONES_METODO_PAGO;
+  readonly clientes = this.clientesService.clientes;
+  readonly formatearMiles = formatearMiles;
 
-  readonly resultadosBusqueda = computed(() => {
-    const termino = this.busqueda().trim().toLowerCase();
+  readonly carrito = signal<ItemCarrito[]>([]);
+  readonly registrando = signal(false);
+
+  readonly columnas: ColumnDef<ItemCarrito>[] = [
+    { key: 'sku', header: 'Referencia', mono: true },
+    { key: 'productName', header: 'Producto' },
+    { key: 'quantity', header: 'Cant.' },
+    { key: 'unitPrice', header: 'Precio' },
+    { key: 'series', header: 'Series' },
+    { key: 'lineTotal', header: 'Subtotal' },
+    { key: 'acciones', header: '' },
+  ];
+
+  /** Para la columna "Subtotal" (no es un campo propio de `ItemCarrito`, se calcula al vuelo). */
+  subtotalDe(item: ItemCarrito): number {
+    return item.quantity * item.unitPrice;
+  }
+
+  readonly metodoPago = new FormControl<MetodoPago>('Cash', { nonNullable: true });
+  readonly discriminaIva = new FormControl(false, { nonNullable: true });
+  private readonly discriminaIvaSignal = toSignal(this.discriminaIva.valueChanges, { initialValue: this.discriminaIva.value });
+
+  readonly subtotal = computed(() => this.carrito().reduce((suma, i) => suma + i.quantity * i.unitPrice, 0));
+  readonly iva = computed(() => (this.discriminaIvaSignal() ? Math.round(this.subtotal() * 0.19) : 0));
+  readonly total = computed(() => this.subtotal() + this.iva());
+
+  // --- Venta a crédito: sin interés, solo amortización en cuotas mensuales del total. Exige cliente. ---
+  readonly esCredito = new FormControl(false, { nonNullable: true });
+  private readonly esCreditoSignal = toSignal(this.esCredito.valueChanges, { initialValue: this.esCredito.value });
+  readonly numeroCuotas = new FormControl(2, { nonNullable: true, validators: [Validators.required, Validators.min(1), Validators.max(36)] });
+  /** Vista previa del valor de cada cuota — misma cuenta que CreateSaleCommandHandler.BuildInstallments
+   * (última cuota absorbe el residuo del redondeo), solo para que la persona vea qué está prometiendo. */
+  readonly valorCuotaPreview = computed(() => {
+    const n = this.numeroCuotas.value;
+    if (!this.esCreditoSignal() || !n || n < 1) return null;
+    return Math.round((this.total() / n) * 100) / 100;
+  });
+  readonly faltaClienteParaCredito = computed(() => this.esCreditoSignal() && !this.clienteSeleccionado());
+
+  // --- Buscador de productos (agrega/incrementa al hacer clic, no es multi-selección) ---
+  readonly busquedaProducto = new FormControl('', { nonNullable: true });
+  private readonly terminoBusquedaProducto = toSignal(this.busquedaProducto.valueChanges, { initialValue: '' });
+  readonly resultadosBusquedaProducto = computed(() => {
+    const termino = this.terminoBusquedaProducto().trim().toLowerCase();
     if (!termino) return [];
     return this.inventarioService
       .productos()
-      .filter((p) => p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino))
-      .slice(0, 5);
+      .filter((p) => p.isActive && (p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino)))
+      .slice(0, 8);
   });
 
-  readonly columnas: ColumnDef<ItemVenta>[] = [
-    { key: 'sku', header: 'Referencia', mono: true },
-    { key: 'producto', header: 'Producto' },
-    { key: 'cantidad', header: 'Cant.' },
-    { key: 'precio', header: 'Precio' },
-    { key: 'subtotal', header: 'Subtotal' },
-  ];
+  // --- Combobox de cliente (selección única — "Consumidor final" cuando no hay ninguno elegido) ---
+  @ViewChild('comboCliente') private readonly comboClienteRef?: ElementRef<HTMLElement>;
+  readonly clienteSeleccionado = signal<Cliente | null>(null);
+  readonly mostrarOpcionesCliente = signal(false);
+  readonly busquedaCliente = new FormControl('', { nonNullable: true });
+  private readonly terminoBusquedaCliente = toSignal(this.busquedaCliente.valueChanges, { initialValue: '' });
+  readonly resultadosBusquedaCliente = computed(() => {
+    const termino = this.terminoBusquedaCliente().trim().toLowerCase();
+    const clientes = this.clientes();
+    return !termino ? clientes : clientes.filter((c) => c.name.toLowerCase().includes(termino));
+  });
 
-  readonly cliente = new FormGroup({
-    nitOCedula: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    nombre: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    correo: new FormControl('', { nonNullable: true }),
+  // --- Panel lateral para crear un cliente sin salir de la venta en curso (no pierde el carrito) ---
+  readonly tiposDocumentoCliente = OPCIONES_TIPO_DOCUMENTO_CLIENTE;
+  readonly mostrarPanelCliente = signal(false);
+  readonly guardandoCliente = signal(false);
+
+  readonly formCliente = new FormGroup({
+    name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    documentType: new FormControl<TipoDocumentoCliente | ''>('', { nonNullable: true }),
+    documentNumber: new FormControl('', { nonNullable: true }),
+    address: new FormControl('', { nonNullable: true }),
+    phone: new FormControl('', { nonNullable: true }),
+    email: new FormControl('', { nonNullable: true, validators: [Validators.email] }),
+  });
+
+  private readonly tipoDocClienteSeleccionado = toSignal(this.formCliente.controls.documentType.valueChanges, {
+    initialValue: this.formCliente.controls.documentType.value,
+  });
+  private readonly numeroDocClienteIngresado = toSignal(this.formCliente.controls.documentNumber.valueChanges, {
+    initialValue: this.formCliente.controls.documentNumber.value,
+  });
+  readonly digitoVerificacionClientePreview = computed(() => {
+    if (this.tipoDocClienteSeleccionado() !== 'Nit') return null;
+    return calcularDigitoVerificacionNit(this.numeroDocClienteIngresado());
   });
 
   ngOnInit(): void {
+    // El toast de error ya lo muestra el interceptor global; estos handlers solo evitan
+    // que RxJS relance la excepción como "unhandled" al no encontrar un observer de error.
     this.inventarioService.cargarProductos().subscribe({ error: () => {} });
+    this.clientesService.cargarClientes().subscribe({ error: () => {} });
   }
 
-  agregar(sku: string): void {
-    const producto = this.inventarioService.productos().find((p) => p.sku === sku);
-    if (producto) this.ventasService.agregarProducto(producto);
-    this.busqueda.set('');
+  @HostListener('document:click', ['$event'])
+  cerrarOpcionesClienteSiEsAfuera(evento: MouseEvent): void {
+    if (this.mostrarOpcionesCliente() && !this.comboClienteRef?.nativeElement.contains(evento.target as Node)) {
+      this.mostrarOpcionesCliente.set(false);
+    }
   }
 
-  quitar(sku: string): void {
-    this.ventasService.quitarItem(sku);
+  @HostListener('document:keydown.escape')
+  cerrarConEscape(): void {
+    if (this.mostrarPanelCliente()) this.cerrarPanelCliente();
+    else if (this.mostrarOpcionesCliente()) this.mostrarOpcionesCliente.set(false);
   }
 
-  generarFactura(): void {
-    if (this.cliente.invalid || this.items().length === 0 || this.generando()) {
-      this.cliente.markAllAsTouched();
+  abrirOpcionesCliente(): void {
+    this.mostrarOpcionesCliente.set(true);
+  }
+
+  elegirCliente(cliente: Cliente | null): void {
+    this.clienteSeleccionado.set(cliente);
+    this.mostrarOpcionesCliente.set(false);
+    this.busquedaCliente.setValue('');
+  }
+
+  /** Abre el panel de "nuevo cliente" sin abandonar la venta en curso (el carrito no se pierde). */
+  abrirPanelCliente(): void {
+    this.mostrarOpcionesCliente.set(false);
+    this.mostrarPanelCliente.set(true);
+  }
+
+  cerrarPanelCliente(): void {
+    this.mostrarPanelCliente.set(false);
+    this.formCliente.reset({ name: '', documentType: '', documentNumber: '', address: '', phone: '', email: '' });
+  }
+
+  guardarCliente(): void {
+    if (this.formCliente.invalid || this.guardandoCliente()) {
+      this.formCliente.markAllAsTouched();
       return;
     }
-    this.generando.set(true);
-    this.ventasService.generarFactura({ cliente: this.cliente.getRawValue(), items: this.items() }).subscribe({
-      next: () => {
-        this.toast.success('Factura electrónica generada.');
-        this.generando.set(false);
-        this.cliente.reset({ nitOCedula: '', nombre: '', correo: '' });
-      },
-      error: () => this.generando.set(false),
+    const v = this.formCliente.getRawValue();
+    if (!!v.documentType !== !!v.documentNumber.trim()) {
+      this.toast.error('Si registras un documento, indica el tipo (NIT o Cédula) y el número.');
+      return;
+    }
+    this.guardandoCliente.set(true);
+    this.clientesService
+      .crearCliente({
+        name: v.name,
+        documentType: v.documentType || undefined,
+        documentNumber: v.documentNumber.trim() || undefined,
+        address: v.address || undefined,
+        phone: v.phone || undefined,
+        email: v.email || undefined,
+      })
+      .subscribe({
+        next: (cliente) => {
+          this.toast.success(`Cliente "${cliente.name}" creado.`);
+          // Se selecciona de una vez para la venta en curso — para eso es el panel: no perder el
+          // carrito yendo a la pantalla de Clientes y volviendo.
+          this.elegirCliente(cliente);
+          this.guardandoCliente.set(false);
+          this.cerrarPanelCliente();
+        },
+        error: () => this.guardandoCliente.set(false),
+      });
+  }
+
+  agregarProducto(producto: Producto): void {
+    this.carrito.update((items) => {
+      const existente = items.find((i) => i.sku === producto.sku);
+      if (existente) return items.map((i) => (i.sku === producto.sku ? this.conCantidad(i, i.quantity + 1) : i));
+      const base: ItemCarrito = {
+        sku: producto.sku,
+        productName: producto.name,
+        quantity: 1,
+        unitPrice: producto.salePrice,
+        requiresSerialNumber: producto.requiresSerialNumber,
+        serialNumbers: [],
+      };
+      return [...items, this.conCantidad(base, 1)];
     });
+    this.busquedaProducto.setValue('');
+  }
+
+  /** Ajusta `serialNumbers` al tamaño de `cantidad` (mismo criterio que EscaneoComponent). */
+  private conCantidad(item: ItemCarrito, cantidad: number): ItemCarrito {
+    if (!item.requiresSerialNumber) return { ...item, quantity: cantidad };
+    const copia = item.serialNumbers.slice(0, cantidad);
+    while (copia.length < cantidad) copia.push('');
+    return { ...item, quantity: cantidad, serialNumbers: copia };
+  }
+
+  actualizarCantidad(sku: string, cantidad: number): void {
+    const valor = Math.max(1, Math.floor(cantidad) || 1);
+    this.carrito.update((items) => items.map((i) => (i.sku === sku ? this.conCantidad(i, valor) : i)));
+  }
+
+  onPrecioInput(evento: Event, sku: string): void {
+    const input = evento.target as HTMLInputElement;
+    const numero = parsearMiles(input.value) ?? 0;
+    input.value = formatearMiles(numero);
+    this.carrito.update((items) => items.map((i) => (i.sku === sku ? { ...i, unitPrice: numero } : i)));
+  }
+
+  actualizarSerial(sku: string, indice: number, valor: string): void {
+    this.carrito.update((items) =>
+      items.map((i) => {
+        if (i.sku !== sku) return i;
+        const copia = [...i.serialNumbers];
+        copia[indice] = valor;
+        return { ...i, serialNumbers: copia };
+      }),
+    );
+  }
+
+  quitarItem(sku: string): void {
+    this.carrito.update((items) => items.filter((i) => i.sku !== sku));
+  }
+
+  registrar(): void {
+    const items = this.carrito();
+    if (items.length === 0 || this.registrando()) return;
+
+    if (this.esCredito.value) {
+      if (!this.clienteSeleccionado()) {
+        this.toast.error('Una venta a crédito exige elegir un cliente — "Consumidor final" no aplica.');
+        return;
+      }
+      if (!this.numeroCuotas.value || this.numeroCuotas.value < 1) {
+        this.toast.error('Indica en cuántas cuotas se paga la venta.');
+        return;
+      }
+    }
+
+    for (const item of items) {
+      if (!item.requiresSerialNumber) continue;
+      if (item.serialNumbers.some((s) => !s.trim())) {
+        this.toast.error(`Completa el número de serie de cada unidad de "${item.productName}".`);
+        return;
+      }
+      if (new Set(item.serialNumbers.map((s) => s.trim())).size !== item.serialNumbers.length) {
+        this.toast.error(`Hay números de serie repetidos en "${item.productName}".`);
+        return;
+      }
+    }
+
+    this.registrando.set(true);
+    this.ventasService
+      .registrarVenta({
+        customerId: this.clienteSeleccionado()?.id,
+        paymentMethod: this.metodoPago.value,
+        discriminatesTax: this.discriminaIva.value,
+        items: items.map((i) => ({
+          sku: i.sku,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          serialNumbers: i.requiresSerialNumber ? i.serialNumbers.map((s) => s.trim()) : undefined,
+        })),
+        isCredit: this.esCredito.value,
+        installmentsCount: this.esCredito.value ? this.numeroCuotas.value : undefined,
+      })
+      .subscribe({
+        next: (venta) => {
+          this.toast.success(
+            venta.isCredit ? `Venta #${venta.number} registrada a crédito en ${venta.installmentsCount} cuotas.` : `Venta #${venta.number} registrada.`,
+          );
+          this.registrando.set(false);
+          void this.router.navigate(['/ventas', venta.id]);
+        },
+        error: () => this.registrando.set(false),
+      });
   }
 }

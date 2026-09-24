@@ -1,0 +1,98 @@
+.clientes-panel__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+  animation: clientes-panel-fade 0.15s ease-out;
+}
+
+.clientes-panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: min(420px, calc(100vw - 32px));
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  z-index: 91;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: clientes-panel-slide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.clientes-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 17px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.clientes-panel__cerrar {
+  border: none;
+  background: none;
+  font-size: 23px;
+  line-height: 1;
+  color: var(--color-ink-secondary);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+.clientes-panel__cerrar:hover { color: var(--color-ink); background: var(--color-page); }
+
+.clientes-panel__form { display: flex; flex-direction: column; flex-grow: 1; min-height: 0; }
+.clientes-panel__campos { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.clientes-panel__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+@keyframes clientes-panel-slide {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes clientes-panel-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.clientes-form__doc-input {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-page);
+  padding: 0 12px;
+}
+.clientes-form__doc-input input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  height: auto;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-family: var(--font-mono);
+  color: var(--color-ink);
+}
+.clientes-form__doc-input input:focus { outline: none; }
+.clientes-form__doc-dv {
+  font-size: 14px;
+  font-family: var(--font-mono);
+  color: var(--color-ink-secondary);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .clientes-panel { top: 8px; right: 8px; bottom: 8px; width: calc(100vw - 16px); }
+}

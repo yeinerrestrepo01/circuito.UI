@@ -4,7 +4,7 @@
       <div class="detalle-header__imagen"></div>
       <div class="detalle-header__info">
         <div style="display:flex; align-items:center; gap:10px;">
-          <h1 class="page-title" style="font-size:24px;">{{ p.name }}</h1>
+          <h1 class="page-title" style="font-size:25px;">{{ p.name }}</h1>
           <app-status-badge [status]="estadoBadge()" [label]="estadoLabel()" />
           @if (!p.isActive) { <span class="badge">Inactivo</span> }
         </div>
@@ -21,37 +21,37 @@
 
     <div class="detalle-metricas">
       <app-card padded>
-        <div class="muted" style="font-size:12px;">Stock actual</div>
+        <div class="muted" style="font-size:13px;">Stock actual</div>
         <div class="detalle-metricas__valor" [style.color]="p.status === 'Available' ? 'inherit' : 'var(--color-warning)'">{{ p.stockQuantity }}</div>
       </app-card>
       <app-card padded>
-        <div class="muted" style="font-size:12px;">Stock mínimo</div>
+        <div class="muted" style="font-size:13px;">Stock mínimo</div>
         <div class="detalle-metricas__valor">{{ p.minStock }}</div>
       </app-card>
       <app-card padded>
-        <div class="muted" style="font-size:12px;">Precio</div>
+        <div class="muted" style="font-size:13px;">Precio</div>
         <div class="detalle-metricas__valor">{{ p.salePrice | cop }}</div>
       </app-card>
       <app-card padded>
-        <div class="muted" style="font-size:12px;">Proveedor principal</div>
+        <div class="muted" style="font-size:13px;">Proveedor principal</div>
         @if (proveedorPrincipal(); as principal) {
           <div class="detalle-metricas__valor detalle-metricas__valor--sm">{{ principal.supplierName }}</div>
           @if (p.suppliers.length > 1) {
-            <div class="muted" style="font-size:11px;">+{{ p.suppliers.length - 1 }} proveedor{{ p.suppliers.length > 2 ? 'es' : '' }} más</div>
+            <div class="muted" style="font-size:12px;">+{{ p.suppliers.length - 1 }} proveedor{{ p.suppliers.length > 2 ? 'es' : '' }} más</div>
           }
         } @else {
           <div class="detalle-metricas__valor detalle-metricas__valor--sm">—</div>
         }
       </app-card>
       <app-card padded>
-        <div class="muted" style="font-size:12px;">Vehículos compatibles</div>
+        <div class="muted" style="font-size:13px;">Vehículos compatibles</div>
         <div class="detalle-metricas__valor">{{ p.compatibleVehicleCount }}</div>
       </app-card>
     </div>
 
     @if (p.suppliers.length > 0) {
       <app-card padded style="margin-top:16px;">
-        <div style="font-size:13px; font-weight:500; margin-bottom:10px;">Proveedores de este producto</div>
+        <div style="font-size:14px; font-weight:500; margin-bottom:10px;">Proveedores de este producto</div>
         <app-data-table [columns]="columnasProveedores" [rows]="p.suppliers">
           <ng-template appCellDef="supplierName" let-s>
             {{ s.supplierName }}

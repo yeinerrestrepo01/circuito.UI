@@ -1,4 +1,4 @@
-.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background: currentColor; }
 .status--warning { color: var(--color-warning); }
 .status--danger { color: var(--color-danger); }

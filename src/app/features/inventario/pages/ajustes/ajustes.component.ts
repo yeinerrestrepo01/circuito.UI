@@ -1,5 +1,5 @@
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CardComponent } from '../../../../shared/components/card/card.component';
@@ -20,7 +20,7 @@ import {
 import { Producto } from '../../models/producto.model';
 import { InventarioService } from '../../services/inventario.service';
 import { ProveedoresService } from '../../services/proveedores.service';
-import { formatearCop } from '../../../../shared/utils/formato';
+import { formatearCop, formatearMiles, parsearMiles } from '../../../../shared/utils/formato';
 
 /** Producto ya agregado al movimiento en construcción, con la cantidad (y, si aplica, el costo de
  * compra) propios de esta línea. */
@@ -44,6 +44,13 @@ export class AjustesInventarioComponent implements OnInit {
   private readonly inventarioService = inject(InventarioService);
   private readonly proveedoresService = inject(ProveedoresService);
   private readonly toast = inject(ToastService);
+  /** Solo el contenedor del combobox de productos (no todo el componente) — así un clic en
+   * cualquier OTRA parte del panel (Motivo, Observaciones, etc.) también cierra el dropdown. */
+  @ViewChild('comboProductos') private readonly comboRef?: ElementRef<HTMLElement>;
+
+  /** Expuesta al template: el input de costo de compra no está ligado a un FormControl (es una lista
+   * dinámica por fila), así que no puede usar `MilesInputDirective` — se formatea a mano con esto. */
+  readonly formatearMiles = formatearMiles;
 
   readonly opcionesTipo = OPCIONES_TIPO_MOVIMIENTO;
   readonly proveedores = this.proveedoresService.proveedores;
@@ -55,16 +62,20 @@ export class AjustesInventarioComponent implements OnInit {
   readonly busquedaProducto = new FormControl('', { nonNullable: true });
   private readonly terminoBusquedaProducto = toSignal(this.busquedaProducto.valueChanges, { initialValue: '' });
   readonly productosSeleccionados = signal<ProductoSeleccionado[]>([]);
+  /** true mientras el "select" de productos está abierto — como cualquier combobox, se abre al
+   * enfocar el campo (mostrando todas las opciones) y se filtra a medida que se escribe. */
+  readonly mostrarOpciones = signal(false);
 
-  /** Resultados del buscador de productos, excluyendo los ya agregados. */
+  /** Opciones del combobox — sin texto escrito muestra el catálogo completo (como un <select> normal
+   * al abrirlo); con texto, lo filtra. NO excluye los ya seleccionados (se quedan marcados con ✓)
+   * para poder ir eligiendo varios sin que la lista desaparezca entre un clic y el siguiente. */
   readonly resultadosBusquedaProducto = computed(() => {
     const termino = this.terminoBusquedaProducto().trim().toLowerCase();
-    if (!termino) return [];
-    const yaAgregados = new Set(this.productosSeleccionados().map((p) => p.sku));
-    return this.inventarioService
-      .productos()
-      .filter((p) => !yaAgregados.has(p.sku) && (p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino)))
-      .slice(0, 6);
+    const productos = this.inventarioService.productos();
+    const filtrados = !termino
+      ? productos
+      : productos.filter((p) => p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino));
+    return filtrados.slice(0, 30);
   });
 
   readonly form = new FormGroup({
@@ -147,7 +158,21 @@ export class AjustesInventarioComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   cerrarConEscape(): void {
-    if (this.mostrarPanel()) this.cerrarPanel();
+    if (this.mostrarOpciones()) this.mostrarOpciones.set(false);
+    else if (this.mostrarPanel()) this.cerrarPanel();
+  }
+
+  /** Cierra el combobox de productos al hacer clic fuera de él — el mismo patrón que el menú de
+   * usuario del topbar (sin overlay bloqueante, solo detecta clics afuera de este componente). */
+  @HostListener('document:click', ['$event'])
+  cerrarOpcionesSiEsAfuera(evento: MouseEvent): void {
+    if (this.mostrarOpciones() && !this.comboRef?.nativeElement.contains(evento.target as Node)) {
+      this.mostrarOpciones.set(false);
+    }
+  }
+
+  abrirOpciones(): void {
+    this.mostrarOpciones.set(true);
   }
 
   seleccionarTipo(tipo: TipoMovimiento): void {
@@ -171,11 +196,22 @@ export class AjustesInventarioComponent implements OnInit {
       ...lista,
       { sku: producto.sku, name: producto.name, quantity: 1, purchaseCost: producto.purchaseCost ?? null },
     ]);
-    this.busquedaProducto.setValue('');
+    // Ya NO se limpia el buscador: así se pueden ir tildando varios resultados de la misma búsqueda
+    // (o de búsquedas distintas) sin que la lista se cierre entre uno y otro.
   }
 
   quitarProducto(sku: string): void {
     this.productosSeleccionados.update((lista) => lista.filter((p) => p.sku !== sku));
+  }
+
+  estaSeleccionado(sku: string): boolean {
+    return this.productosSeleccionados().some((p) => p.sku === sku);
+  }
+
+  /** El checkbox de cada resultado llama esto — agrega o quita según su estado actual. */
+  alternarProducto(producto: Producto): void {
+    if (this.estaSeleccionado(producto.sku)) this.quitarProducto(producto.sku);
+    else this.agregarProducto(producto);
   }
 
   actualizarCantidad(sku: string, cantidad: number): void {
@@ -185,6 +221,15 @@ export class AjustesInventarioComponent implements OnInit {
 
   actualizarCostoCompra(sku: string, costo: number | null): void {
     this.productosSeleccionados.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, purchaseCost: costo } : p)));
+  }
+
+  /** Reformatea con separador de miles en cada tecla (ver MilesInputDirective — acá va a mano porque
+   * esta fila no tiene un FormControl propio detrás). */
+  onCostoInput(evento: Event, sku: string): void {
+    const input = evento.target as HTMLInputElement;
+    const numero = parsearMiles(input.value);
+    input.value = numero == null ? '' : formatearMiles(numero);
+    this.actualizarCostoCompra(sku, numero);
   }
 
   registrar(): void {

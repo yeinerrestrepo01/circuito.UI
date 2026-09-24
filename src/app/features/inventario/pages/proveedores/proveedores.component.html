@@ -10,7 +10,7 @@
     <app-data-table [columns]="columnas" [rows]="proveedores()" emptyMessage="Aún no hay proveedores creados.">
       <ng-template appCellDef="fullDocument" let-p>
         <span class="muted mono">{{ p.fullDocument ?? '—' }}</span>
-        @if (p.documentType) { <span class="muted" style="font-size:11px;"> ({{ p.documentType === 'Nit' ? 'NIT' : 'Cédula' }})</span> }
+        @if (p.documentType) { <span class="muted" style="font-size:12px;"> ({{ p.documentType === 'Nit' ? 'NIT' : 'Cédula' }})</span> }
       </ng-template>
       <ng-template appCellDef="address" let-p><span class="muted">{{ p.address ?? '—' }}</span></ng-template>
       <ng-template appCellDef="contactName" let-p><span class="muted">{{ p.contactName ?? '—' }}</span></ng-template>

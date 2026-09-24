@@ -8,6 +8,7 @@ import { KpiTileComponent } from '../../../../shared/components/kpi-tile/kpi-til
 import { ServiceRingComponent } from '../../../../shared/components/service-ring/service-ring.component';
 import { EstadoBadge, StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { Producto } from '../../models/producto.model';
 import { InventarioService } from '../../services/inventario.service';
 
@@ -24,8 +25,6 @@ const ESTADO_LABEL: Record<Producto['status'], string> = {
     CardComponent,
     DataTableComponent,
     CellDefDirective,
-    KpiTileComponent,
-    ServiceRingComponent,
     StatusBadgeComponent,
   ],
   templateUrl: './dashboard.component.html',
@@ -34,10 +33,21 @@ const ESTADO_LABEL: Record<Producto['status'], string> = {
 export class DashboardComponent implements OnInit {
   private readonly inventarioService = inject(InventarioService);
   private readonly toast = inject(ToastService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly productos = this.inventarioService.productos;
   readonly productosConAlerta = this.inventarioService.productosConAlerta;
   readonly quiebresDeStock = computed(() => this.productosConAlerta().filter((p) => p.status === 'OutOfStock').length);
+
+  readonly busqueda = signal('');
+  readonly productosFiltrados = computed(() => this.filtrar(this.productos()));
+  readonly productosConAlertaFiltrados = computed(() => this.filtrar(this.productosConAlerta()));
+
+  private filtrar(lista: Producto[]): Producto[] {
+    const termino = this.busqueda().trim().toLowerCase();
+    if (!termino) return lista;
+    return lista.filter((p) => p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino));
+  }
   /** Estático hasta que exista un endpoint de KPIs agregados; replica el valor del mockup. */
   readonly ventasDelMes = '$18.4M';
   /** Id del producto cuya acción (inactivar/reactivar) está en curso — deshabilita ese botón nada más. */
@@ -72,11 +82,17 @@ export class DashboardComponent implements OnInit {
     return ESTADO_LABEL[estado];
   }
 
-  /** Confirmación nativa solo al inactivar (acción que oculta el producto de donde se elegiría para
+  /** Confirmación solo al inactivar (acción que oculta el producto de donde se elegiría para
    * vender/comprar); reactivar es inocuo y no la necesita. */
-  cambiarEstado(producto: Producto): void {
-    if (producto.isActive && !confirm(`¿Inactivar "${producto.name}"? Dejará de aparecer para venderlo o comprarlo, pero su historial se conserva.`)) {
-      return;
+  async cambiarEstado(producto: Producto): Promise<void> {
+    if (producto.isActive) {
+      const confirmado = await this.confirmDialog.confirmar({
+        titulo: 'Inactivar producto',
+        mensaje: `¿Inactivar "${producto.name}"? Dejará de aparecer para venderlo o comprarlo, pero su historial se conserva.`,
+        textoConfirmar: 'Inactivar',
+        peligroso: true,
+      });
+      if (!confirmado) return;
     }
     this.cambiandoEstadoId.set(producto.id);
     this.inventarioService.cambiarEstadoProducto(producto.id, !producto.isActive).subscribe({

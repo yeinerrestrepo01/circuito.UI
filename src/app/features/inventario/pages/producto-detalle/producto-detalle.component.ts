@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { ColumnDef } from '../../../../shared/components/data-table/column-def';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
@@ -33,6 +34,7 @@ export class ProductoDetalleComponent implements OnInit, OnDestroy {
   private readonly inventarioService = inject(InventarioService);
   private readonly breadcrumbService = inject(BreadcrumbService);
   private readonly toast = inject(ToastService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly sku = this.route.snapshot.paramMap.get('sku')!;
   readonly producto = signal<Producto | null>(null);
@@ -88,9 +90,15 @@ export class ProductoDetalleComponent implements OnInit, OnDestroy {
     return LABEL_TIPO_MOVIMIENTO[tipo];
   }
 
-  cambiarEstado(producto: Producto): void {
-    if (producto.isActive && !confirm(`¿Inactivar "${producto.name}"? Dejará de aparecer para venderlo o comprarlo, pero su historial se conserva.`)) {
-      return;
+  async cambiarEstado(producto: Producto): Promise<void> {
+    if (producto.isActive) {
+      const confirmado = await this.confirmDialog.confirmar({
+        titulo: 'Inactivar producto',
+        mensaje: `¿Inactivar "${producto.name}"? Dejará de aparecer para venderlo o comprarlo, pero su historial se conserva.`,
+        textoConfirmar: 'Inactivar',
+        peligroso: true,
+      });
+      if (!confirmado) return;
     }
     this.cambiandoEstado.set(true);
     this.inventarioService.cambiarEstadoProducto(producto.id, !producto.isActive).subscribe({

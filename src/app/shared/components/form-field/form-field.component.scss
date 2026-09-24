@@ -1,6 +1,6 @@
 :host { display: contents; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 12px; font-weight: 500; }
+.field label { font-size: 13px; font-weight: 500; }
 .field ::ng-deep input,
 .field ::ng-deep select,
 .field ::ng-deep textarea {
@@ -9,8 +9,8 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-page);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-ink);
 }
 .field ::ng-deep textarea { height: auto; padding: 10px 12px; resize: none; font-family: var(--font-sans); }
-.field__hint { font-size: 11px; }
+.field__hint { font-size: 12px; }

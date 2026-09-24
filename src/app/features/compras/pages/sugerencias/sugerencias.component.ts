@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { CellDefDirective } from '../../../../shared/components/data-table/cell-def.directive';
 import { ColumnDef } from '../../../../shared/components/data-table/column-def';
@@ -9,7 +10,7 @@ import { ComprasService } from '../../services/compras.service';
 
 @Component({
   selector: 'app-sugerencias-compra',
-  imports: [CardComponent, DataTableComponent, CellDefDirective],
+  imports: [RouterLink, RouterLinkActive, CardComponent, DataTableComponent, CellDefDirective],
   templateUrl: './sugerencias.component.html',
   styleUrl: './sugerencias.component.scss',
 })
@@ -20,27 +21,41 @@ export class SugerenciasCompraComponent implements OnInit {
   readonly sugerencias = this.comprasService.sugerencias;
   readonly seleccionados = signal<ReadonlySet<string>>(new Set());
   readonly generando = signal(false);
+  /** Cantidad a pedir por Sku — arranca en la sugerida, editable antes de generar la orden. */
+  readonly cantidades = signal<Record<string, number>>({});
 
   readonly columnas: ColumnDef<SugerenciaCompra>[] = [
     { key: 'seleccionado', header: '' },
     { key: 'sku', header: 'Referencia', mono: true },
-    { key: 'producto', header: 'Producto' },
-    { key: 'stockActual', header: 'Stock actual' },
-    { key: 'sugerido', header: 'Sugerido' },
-    { key: 'motivo', header: 'Motivo' },
+    { key: 'productName', header: 'Producto' },
+    { key: 'currentStock', header: 'Stock actual' },
+    { key: 'suggestedQuantity', header: 'Sugerido' },
+    { key: 'reason', header: 'Motivo' },
   ];
 
   readonly proveedoresSeleccionados = computed(() => {
     const skus = this.seleccionados();
-    const proveedores = new Set(this.sugerencias().filter((s) => skus.has(s.sku)).map((s) => s.proveedor));
+    const proveedores = new Set(this.sugerencias().filter((s) => skus.has(s.sku)).map((s) => s.supplierId));
     return proveedores.size;
   });
 
   ngOnInit(): void {
     this.comprasService.cargarSugerencias().subscribe({
-      next: (sugerencias) => this.seleccionados.set(new Set(sugerencias.map((s) => s.sku))),
+      next: (sugerencias) => {
+        this.seleccionados.set(new Set(sugerencias.map((s) => s.sku)));
+        this.cantidades.set(Object.fromEntries(sugerencias.map((s) => [s.sku, s.suggestedQuantity])));
+      },
       error: () => {},
     });
+  }
+
+  cantidadDe(sku: string): number {
+    return this.cantidades()[sku] ?? 0;
+  }
+
+  actualizarCantidad(sku: string, cantidad: number): void {
+    const valor = Math.max(1, Math.floor(cantidad) || 1);
+    this.cantidades.update((actuales) => ({ ...actuales, [sku]: valor }));
   }
 
   estaSeleccionado(sku: string): boolean {
@@ -59,10 +74,16 @@ export class SugerenciasCompraComponent implements OnInit {
     const skus = [...this.seleccionados()];
     if (skus.length === 0 || this.generando()) return;
     this.generando.set(true);
-    this.comprasService.generarOrdenCompra({ skus }).subscribe({
-      next: () => {
-        this.toast.success('Orden de compra generada.');
+    const items = skus.map((sku) => ({ sku, quantity: this.cantidadDe(sku) }));
+    this.comprasService.generarOrdenCompra({ items }).subscribe({
+      next: (ordenes) => {
+        this.toast.success(
+          ordenes.length === 1 ? `Orden de compra generada para ${ordenes[0].supplierName}.` : `${ordenes.length} órdenes de compra generadas.`,
+        );
         this.generando.set(false);
+        // Se recarga: las sugerencias ya atendidas siguen apareciendo hasta que el stock realmente
+        // suba (la orden generada no mueve inventario por sí sola, ver PurchaseOrderStatus.Pending).
+        this.comprasService.cargarSugerencias().subscribe({ error: () => {} });
       },
       error: () => this.generando.set(false),
     });

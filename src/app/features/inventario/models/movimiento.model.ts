@@ -15,6 +15,8 @@ export interface MovimientoInventario {
   supplierName?: string | null;
   /** Solo tiene valor cuando el movimiento es una compra a proveedor. */
   purchaseCost?: number | null;
+  /** Un valor por unidad vendida — solo presente en una Salida de un producto con `requiresSerialNumber`. */
+  serialNumbers?: string[] | null;
   performedByName: string;
   createdAt: string;
 }
@@ -28,6 +30,9 @@ export interface RegistrarMovimientoPayload {
   notes?: string;
   supplierId?: string;
   purchaseCost?: number;
+  /** Obligatorio (exactamente `quantity` valores) solo si el producto tiene `requiresSerialNumber`
+   * y `type` es 'Outflow' — ver `Producto.requiresSerialNumber`. */
+  serialNumbers?: string[];
 }
 
 /** Una línea de producto dentro de un registro por lote — espejo de `BatchMovementItem`. */
@@ -36,6 +41,7 @@ export interface ItemMovimientoLote {
   quantity: number;
   /** Costo de compra de esta línea — solo aplica cuando el motivo es "Compra a proveedor". */
   purchaseCost?: number;
+  serialNumbers?: string[];
 }
 
 /** Espejo de `RegisterMovementsBatchCommand` — varios productos, mismo tipo/motivo/proveedor (pantalla de Ajustes). */

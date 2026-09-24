@@ -2,7 +2,7 @@
 .almacenes-tabla { min-height: 0; }
 .almacenes-nuevo { align-self: start; }
 .almacenes-nuevo__separador {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-ink-secondary);
   border-top: 1px solid var(--color-border);
@@ -13,7 +13,7 @@
 .almacenes-estado { display: flex; align-items: center; gap: 8px; }
 .almacenes-estado__select {
   height: 28px;
-  font-size: 11px;
+  font-size: 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-page);

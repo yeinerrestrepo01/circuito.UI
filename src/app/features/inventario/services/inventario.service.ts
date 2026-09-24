@@ -53,6 +53,13 @@ export class InventarioService {
     return this.http.get<ApiResult<Producto>>(`${this.apiUrl}/products/${sku}`).pipe(map((r) => r.data!));
   }
 
+  /** Para Escaneo: `codigo` puede ser el Sku interno o un código de barras de fábrica, y este último
+   * puede repetirse en varios productos (p. ej. un mismo "Grupo de batería A30" en varias marcas) —
+   * por eso devuelve una lista, nunca un solo producto. Vacía = no encontró nada. */
+  buscarProductosPorCodigo(codigo: string): Observable<Producto[]> {
+    return this.http.get<ApiResult<Producto[]>>(`${this.apiUrl}/products/scan/${codigo}`).pipe(map((r) => r.data ?? []));
+  }
+
   /** Un solo producto — la usa la pantalla de Escaneo, que siempre resuelve exactamente un producto antes de registrar. */
   registrarMovimiento(payload: RegistrarMovimientoPayload): Observable<MovimientoInventario> {
     return this.http.post<ApiResult<MovimientoInventario>>(`${this.apiUrl}/inventory-movements`, payload).pipe(

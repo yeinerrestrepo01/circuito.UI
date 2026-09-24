@@ -21,6 +21,9 @@ export const LABEL_UNIDAD_MEDIDA: Record<UnidadMedida, string> = Object.fromEntr
 export interface Producto {
   id: string;
   sku: string;
+  /** Código físico de fábrica (EAN-13/UPC-A/etc.), leído con la cámara en Nuevo Producto — distinto
+   * del sku (que arma el negocio como categoría-marca-código). Null hasta que alguien lo capture. */
+  barcode?: string | null;
   name: string;
   categoryId: string;
   categoryName: string;
@@ -46,6 +49,9 @@ export interface Producto {
   /** false = el negocio dejó de vender/comprar este producto; sigue en el catálogo (historial, reportes)
    * pero se oculta de donde alguien lo elegiría para vender/comprar. */
   isActive: boolean;
+  /** Si es true, una Salida (venta) de este producto exige un número de serie por unidad vendida —
+   * para repuestos con serie individual (baterías) a diferencia de repuestos a granel (tornillos). */
+  requiresSerialNumber: boolean;
   createdAt: string;
 }
 
@@ -59,6 +65,7 @@ export interface NuevoProductoProveedor {
 /** Espejo de `CreateProductCommand` — el backend calcula `status` a partir del stock inicial y el mínimo. */
 export interface NuevoProductoPayload {
   sku: string;
+  barcode?: string;
   name: string;
   categoryId: string;
   brand: string;
@@ -73,11 +80,13 @@ export interface NuevoProductoPayload {
   hasLifecycleReminder?: boolean;
   lifecycleCategory?: string;
   lifecycleReminderWindowDays?: number[];
+  requiresSerialNumber?: boolean;
 }
 
 /** Espejo de `UpdateProductCommand` — igual que `NuevoProductoPayload` pero sin `sku` ni `initialStock`:
  * la referencia es la identidad estable del producto y el stock solo cambia por movimientos (Ajustes). */
 export interface ActualizarProductoPayload {
+  barcode?: string;
   name: string;
   categoryId: string;
   brand: string;
@@ -91,4 +100,5 @@ export interface ActualizarProductoPayload {
   hasLifecycleReminder?: boolean;
   lifecycleCategory?: string;
   lifecycleReminderWindowDays?: number[];
+  requiresSerialNumber?: boolean;
 }

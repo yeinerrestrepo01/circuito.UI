@@ -1,6 +1,6 @@
-.data-table { font-size: 13px; width: 100%; border-collapse: collapse; }
+.data-table { font-size: 14px; width: 100%; border-collapse: collapse; }
 .data-table th {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   text-align: left;
   color: var(--color-ink-secondary);
@@ -20,7 +20,7 @@
   gap: 12px;
   padding: 12px 20px;
   border-top: 1px solid var(--color-border);
-  font-size: 12px;
+  font-size: 13px;
   flex-shrink: 0;
 }
 .data-table__pagination-botones { display: flex; align-items: center; gap: 12px; }
@@ -29,7 +29,7 @@
   background: var(--color-surface);
   border-radius: var(--radius-sm);
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   color: var(--color-ink);
   transition: background-color 0.15s ease;

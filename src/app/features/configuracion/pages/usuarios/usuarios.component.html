@@ -9,7 +9,7 @@
   </div>
 
   <div class="usuarios-header">
-    <span class="muted" style="font-size:13px;">{{ activos() }} usuarios activos</span>
+    <span class="muted" style="font-size:14px;">{{ activos() }} usuarios activos</span>
     @if (!mostrarFormulario()) {
       <button class="btn btn-primary" (click)="abrirFormulario()">Invitar usuario</button>
     }
@@ -18,7 +18,7 @@
   @if (mostrarFormulario()) {
     <app-card padded>
       <form [formGroup]="form" (ngSubmit)="invitar()" novalidate>
-        <div style="font-size:15px; font-weight:500; margin-bottom:14px;">Invitar usuario</div>
+        <div style="font-size:16px; font-weight:500; margin-bottom:14px;">Invitar usuario</div>
 
         <div class="usuarios-form__grid">
           <app-form-field label="Nombre" inputId="inv-nombre">

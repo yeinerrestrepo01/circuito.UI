@@ -16,6 +16,22 @@ export const routes: Routes = [
     title: 'Circuito — Registrar movimiento',
   },
   {
+    // Página de impresión aislada: sin rail ni topbar, para que window.print() no saque el resto de
+    // la app — se abre en una pestaña nueva desde VentaDetalleComponent.
+    path: 'ventas/:id/imprimir',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/ventas/pages/imprimir/imprimir.component').then((m) => m.ImprimirVentaComponent),
+    title: 'Circuito — Imprimir venta',
+  },
+  {
+    // Recibo de un abono a una cuota — mismo criterio: sin rail ni topbar, se abre en pestaña nueva
+    // justo al registrar el abono (Cartera / detalle de venta).
+    path: 'cartera/pagos/:id/imprimir',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/ventas/pages/imprimir-abono/imprimir-abono.component').then((m) => m.ImprimirAbonoComponent),
+    title: 'Circuito — Recibo de abono',
+  },
+  {
     // Nivel plataforma: su propio rail y layout, nunca el de tenant.
     path: 'admin',
     canActivate: [superadminGuard],
@@ -45,6 +61,14 @@ export const routes: Routes = [
       {
         path: 'ventas',
         loadChildren: () => import('./features/ventas/ventas.routes').then((m) => m.VENTAS_ROUTES),
+      },
+      {
+        path: 'clientes',
+        loadChildren: () => import('./features/clientes/clientes.routes').then((m) => m.CLIENTES_ROUTES),
+      },
+      {
+        path: 'cartera',
+        loadChildren: () => import('./features/cartera/cartera.routes').then((m) => m.CARTERA_ROUTES),
       },
       {
         path: 'compatibilidad',

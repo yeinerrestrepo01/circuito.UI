@@ -1,0 +1,66 @@
+<div class="page">
+  <div class="content-header">
+    <div>
+      <h1 class="page-title page-title--sm">Clientes</h1>
+    </div>
+    <button class="btn btn-primary" (click)="abrirFormulario()">+ Nuevo cliente</button>
+  </div>
+
+  <app-card>
+    <app-data-table [columns]="columnas" [rows]="clientes()" emptyMessage="Aún no hay clientes creados.">
+      <ng-template appCellDef="fullDocument" let-c>
+        <span class="muted mono">{{ c.fullDocument ?? '—' }}</span>
+        @if (c.documentType) { <span class="muted" style="font-size:12px;"> ({{ c.documentType === 'Nit' ? 'NIT' : 'Cédula' }})</span> }
+      </ng-template>
+      <ng-template appCellDef="address" let-c><span class="muted">{{ c.address ?? '—' }}</span></ng-template>
+      <ng-template appCellDef="phone" let-c><span class="muted">{{ c.phone ?? '—' }}</span></ng-template>
+      <ng-template appCellDef="email" let-c><span class="muted">{{ c.email ?? '—' }}</span></ng-template>
+    </app-data-table>
+  </app-card>
+
+  @if (mostrarFormulario()) {
+    <div class="clientes-panel__overlay" (click)="cancelar()"></div>
+    <aside class="clientes-panel" role="dialog" aria-modal="true" aria-label="Nuevo cliente">
+      <div class="clientes-panel__header">
+        <span>Nuevo cliente</span>
+        <button type="button" class="clientes-panel__cerrar" (click)="cancelar()" aria-label="Cerrar">×</button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="guardar()" novalidate class="clientes-panel__form">
+        <div class="clientes-panel__campos">
+          <app-form-field label="Nombre" inputId="cli-nombre">
+            <input id="cli-nombre" type="text" formControlName="name" placeholder="Ej. Juan Pérez" />
+          </app-form-field>
+          <app-form-field label="Tipo de documento (opcional)" inputId="cli-tipo-doc">
+            <select id="cli-tipo-doc" formControlName="documentType">
+              <option value="">Sin documento</option>
+              @for (t of tiposDocumento; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+            </select>
+          </app-form-field>
+          <app-form-field label="Número de documento" inputId="cli-num-doc">
+            <div class="clientes-form__doc-input">
+              <input id="cli-num-doc" type="text" formControlName="documentNumber" placeholder="Ej. 1075..." />
+              @if (digitoVerificacionPreview() !== null) {
+                <span class="clientes-form__doc-dv">-{{ digitoVerificacionPreview() }}</span>
+              }
+            </div>
+          </app-form-field>
+          <app-form-field label="Dirección (opcional)" inputId="cli-direccion">
+            <input id="cli-direccion" type="text" formControlName="address" />
+          </app-form-field>
+          <app-form-field label="Teléfono (opcional)" inputId="cli-telefono">
+            <input id="cli-telefono" type="tel" formControlName="phone" placeholder="Ej. 3101234567" />
+          </app-form-field>
+          <app-form-field label="Correo (opcional)" inputId="cli-correo">
+            <input id="cli-correo" type="email" formControlName="email" />
+          </app-form-field>
+        </div>
+        <div class="clientes-panel__acciones">
+          <button type="button" class="btn" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar cliente' }}
+          </button>
+        </div>
+      </form>
+    </aside>
+  }
+</div>

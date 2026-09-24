@@ -37,6 +37,19 @@
               }
             </div>
           </app-form-field>
+          <app-form-field label="Código de barras (opcional)">
+            <div class="nuevo-producto__codigo-input">
+              <input type="text" formControlName="codigoBarras" placeholder="Ej. 7501234567892" style="font-family:var(--font-mono);" />
+              <app-barcode-scanner (codigoLeido)="onCodigoBarrasLeido($event)" />
+            </div>
+          </app-form-field>
+          <div style="display:flex; align-items:center; gap:8px; padding-top:20px;">
+            <input type="checkbox" id="requiereSerie" formControlName="requiereSerie" />
+            <label for="requiereSerie" style="font-size:14px;">
+              Requiere número de serie al venderlo
+              <span class="muted" style="display:block; font-size:12px; font-weight:400;">Para repuestos con serie individual (baterías); no aplica a repuestos a granel.</span>
+            </label>
+          </div>
           <app-form-field label="Unidad de medida">
             <select formControlName="unidadMedida">
               @for (u of unidades; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
@@ -66,8 +79,8 @@
         <div class="nuevo-producto__grid-2">
           @if (modoEdicion) {
             <app-form-field label="Stock actual">
-              <div class="mono" style="padding:10px 0; font-size:14px;">
-                {{ stockActual() }} <span class="muted" style="font-weight:400; font-size:12px;">— se ajusta desde Movimientos, no aquí</span>
+              <div class="mono" style="padding:10px 0; font-size:15px;">
+                {{ stockActual() }} <span class="muted" style="font-weight:400; font-size:13px;">— se ajusta desde Movimientos, no aquí</span>
               </div>
             </app-form-field>
           } @else {
@@ -79,10 +92,16 @@
             <input type="number" formControlName="stockMinimo" min="0" />
           </app-form-field>
           <app-form-field label="Precio de compra inicial">
-            <input type="number" formControlName="precioCompra" placeholder="310000" />
+            <div class="input-precio">
+              <span class="input-precio__prefijo">$</span>
+              <input type="text" inputmode="numeric" appMilesInput formControlName="precioCompra" placeholder="310.000" />
+            </div>
           </app-form-field>
           <app-form-field label="Precio de venta">
-            <input type="number" formControlName="precioVenta" placeholder="450000" />
+            <div class="input-precio">
+              <span class="input-precio__prefijo">$</span>
+              <input type="text" inputmode="numeric" appMilesInput formControlName="precioVenta" placeholder="450.000" />
+            </div>
           </app-form-field>
         </div>
         @if (margenPorcentaje() !== null) {
@@ -98,20 +117,20 @@
       <app-card padded>
         <div class="nuevo-producto__titulo">Imagen y compatibilidad</div>
         <div class="nuevo-producto__dropzone">Arrastra una imagen o haz clic</div>
-        <span class="muted" style="font-size:11px;">JPG o PNG, máx. 5 MB</span>
+        <span class="muted" style="font-size:12px;">JPG o PNG, máx. 5 MB</span>
         <div class="nuevo-producto__pills" style="margin-top:14px;">
           @for (eq of equivalencias(); track eq) { <span class="mono nuevo-producto__pill">{{ eq }}</span> }
-          <a href="javascript:void(0)" (click)="agregarEquivalencia()" style="font-size:12px; padding:4px 0;">+ Agregar equivalencia</a>
+          <a href="javascript:void(0)" (click)="agregarEquivalencia()" style="font-size:13px; padding:4px 0;">+ Agregar equivalencia</a>
         </div>
-        <a routerLink="/compatibilidad" style="font-size:12px;">Agregar vehículos compatibles desde el catálogo</a>
+        <a routerLink="/compatibilidad" style="font-size:13px;">Agregar vehículos compatibles desde el catálogo</a>
       </app-card>
 
       <app-card padded>
         <div style="display:flex; align-items:center; gap:8px;">
           <input type="checkbox" id="vidautil" formControlName="vidaUtilAplica" />
-          <label for="vidautil" style="font-size:14px; font-weight:500;">Aplica recordatorio de vida útil</label>
+          <label for="vidautil" style="font-size:15px; font-weight:500;">Aplica recordatorio de vida útil</label>
         </div>
-        <div class="muted" style="font-size:12px; margin:4px 0 14px;">Activa el envío automático de recordatorios cuando venza el ciclo del producto</div>
+        <div class="muted" style="font-size:13px; margin:4px 0 14px;">Activa el envío automático de recordatorios cuando venza el ciclo del producto</div>
         <div class="nuevo-producto__grid-2">
           <app-form-field label="Categoría de vida útil">
             <select formControlName="vidaUtilCategoria">

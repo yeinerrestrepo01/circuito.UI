@@ -30,7 +30,7 @@
 
   @if (productoSeleccionado(); as producto) {
     <app-card padded>
-      <div style="font-size:13px; font-weight:500; margin-bottom:12px;">Disponibilidad de "{{ producto.nombre }}" en la red</div>
+      <div style="font-size:14px; font-weight:500; margin-bottom:12px;">Disponibilidad de "{{ producto.nombre }}" en la red</div>
       <div class="red-grid">
         @for (a of disponibilidad(); track a.almacen) {
           <app-card
@@ -40,10 +40,10 @@
             style="background: var(--color-page);"
           >
             @if (a.esPropio) {
-              <div class="muted" style="font-size:12px;">Tu almacén</div>
+              <div class="muted" style="font-size:13px;">Tu almacén</div>
             } @else {
-              <div style="font-size:13px; font-weight:500;">{{ a.almacen }}</div>
-              <div class="muted" style="font-size:12px; margin-top:2px;">{{ a.ciudad }} · {{ a.distanciaKm }} km</div>
+              <div style="font-size:14px; font-weight:500;">{{ a.almacen }}</div>
+              <div class="muted" style="font-size:13px; margin-top:2px;">{{ a.ciudad }} · {{ a.distanciaKm }} km</div>
             }
             <div class="red-grid__unidades" [style.color]="colorUnidades(a.unidades)">
               {{ a.unidades }} {{ a.unidades === 1 ? 'unidad' : 'unidades' }}
@@ -68,7 +68,7 @@
     <app-card padded class="red-vacio muted">Busca un producto arriba para ver su disponibilidad en la red.</app-card>
   }
 
-  <div style="font-size:16px; font-weight:500;">Solicitudes de transferencia</div>
+  <div style="font-size:17px; font-weight:500;">Solicitudes de transferencia</div>
   <app-card flexCol style="flex-grow:1;">
     <app-data-table [columns]="columnas" [rows]="solicitudes()" emptyMessage="No hay solicitudes de transferencia registradas.">
       <ng-template appCellDef="estado" let-s><app-status-badge [status]="estadoBadge(s.estado)" [label]="estadoLabel(s.estado)" /></ng-template>

@@ -1,6 +1,6 @@
 .nuevo-producto { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; flex-grow: 1; min-height: 0; }
 .nuevo-producto__col { overflow-y: auto; }
-.nuevo-producto__titulo { font-size: 14px; font-weight: 500; margin-bottom: 14px; }
+.nuevo-producto__titulo { font-size: 15px; font-weight: 500; margin-bottom: 14px; }
 .nuevo-producto__grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .nuevo-producto__campo-solo { display: block; margin-bottom: 12px; }
 .nuevo-producto__sku {
@@ -15,6 +15,8 @@
   background: var(--color-page);
 }
 .nuevo-producto__sku .btn { height: 26px; padding: 0 8px; }
+.nuevo-producto__codigo-input { display: flex; gap: 8px; }
+.nuevo-producto__codigo-input input { flex-grow: 1; min-width: 0; }
 .nuevo-producto__pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
 .nuevo-producto__pill { background: var(--color-page); border: 1px solid var(--color-border); padding: 4px 10px; border-radius: 999px; }
 .nuevo-producto__dropzone {
@@ -27,7 +29,7 @@
   align-items: center;
   justify-content: center;
   color: var(--color-ink-secondary);
-  font-size: 12px;
+  font-size: 13px;
   margin-bottom: 6px;
 }
 
@@ -36,7 +38,7 @@
   padding: 8px 10px;
   border-radius: 8px;
   background: var(--color-page);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-ink-secondary);
 }
 .nuevo-producto__margen strong { color: var(--color-success); }

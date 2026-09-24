@@ -10,6 +10,8 @@ import { ActualizarProductoPayload, NuevoProductoPayload, OPCIONES_UNIDAD_MEDIDA
 import { CategoriasService } from '../../services/categorias.service';
 import { InventarioService } from '../../services/inventario.service';
 import { ProveedoresService } from '../../services/proveedores.service';
+import { BarcodeScannerComponent, CodigoLeido } from '../../../../shared/components/barcode-scanner/barcode-scanner.component';
+import { MilesInputDirective } from '../../../../shared/directives/miles-input.directive';
 
 const CATEGORIAS_VIDA_UTIL = [
   'Batería (12–13 meses)',
@@ -39,7 +41,7 @@ function codigoNumericoAleatorio(): string {
 
 @Component({
   selector: 'app-nuevo-producto',
-  imports: [RouterLink, ReactiveFormsModule, CardComponent, FormFieldComponent],
+  imports: [RouterLink, ReactiveFormsModule, CardComponent, FormFieldComponent, BarcodeScannerComponent, MilesInputDirective],
   templateUrl: './nuevo-producto.component.html',
   styleUrl: './nuevo-producto.component.scss',
 })
@@ -75,6 +77,8 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
     unidadMedida: new FormControl<UnidadMedida>('Unit', { nonNullable: true }),
     // Solo obligatorio cuando unidadMedida es 'Box' — se activa/desactiva en actualizarUnidadMedida().
     unidadesPorCaja: new FormControl<number | null>(null, { validators: [Validators.min(1)] }),
+    codigoBarras: new FormControl('', { nonNullable: true }),
+    requiereSerie: new FormControl(false, { nonNullable: true }),
     ubicacion: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     stockInicial: new FormControl(0, { nonNullable: true, validators: [Validators.min(0)] }),
     stockMinimo: new FormControl(5, { nonNullable: true, validators: [Validators.min(0)] }),
@@ -166,6 +170,8 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
       nombre: producto.name,
       categoryId: producto.categoryId,
       marca: producto.brand,
+      codigoBarras: producto.barcode ?? '',
+      requiereSerie: producto.requiresSerialNumber,
       proveedorId: producto.suppliers[0]?.supplierId ?? '',
       unidadMedida: producto.unitOfMeasure,
       unidadesPorCaja: producto.unitsPerBox ?? null,
@@ -202,6 +208,13 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
   agregarEquivalencia(): void {
     const referencia = prompt('Referencia OEM equivalente')?.trim();
     if (referencia) this.equivalencias.update((lista) => [...lista, referencia]);
+  }
+
+  /** El mismo código puede repetirse en otros productos (p. ej. un "Grupo A30" en varias marcas) —
+   * no se valida unicidad aquí, ver el comentario en ProductConfiguration del backend. */
+  onCodigoBarrasLeido(evento: CodigoLeido): void {
+    this.form.controls.codigoBarras.setValue(evento.texto);
+    this.toast.success(`Código de barras capturado (${evento.formato}).`);
   }
 
   guardar(): void {
@@ -245,6 +258,8 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
     const ventana = this.ventanasAviso.find((w) => w.label === v.vidaUtilVentana);
     return {
       sku: this.skuGenerado(),
+      barcode: v.codigoBarras.trim() || undefined,
+      requiresSerialNumber: v.requiereSerie,
       name: v.nombre,
       categoryId: v.categoryId,
       brand: v.marca,

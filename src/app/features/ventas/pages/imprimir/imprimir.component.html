@@ -1,0 +1,8 @@
+<div class="imprimir-venta">
+  @if (venta(); as v) {
+    <button type="button" class="btn btn-primary imprimir-venta__boton no-print" (click)="imprimir()">Imprimir</button>
+    <div class="imprimir-venta__hoja">
+      <app-recibo-venta [venta]="v" [nombreNegocio]="nombreNegocio" [nitEmpresa]="nitEmpresa()" />
+    </div>
+  }
+</div>

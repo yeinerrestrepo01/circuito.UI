@@ -1,0 +1,76 @@
+<div class="page">
+  <div class="content-header">
+    <div>
+      <h1 class="page-title page-title--sm">Cartera</h1>
+      <p class="cartera-resumen">Total pendiente por cobrar: <strong>{{ totalPendiente() | cop }}</strong></p>
+    </div>
+    @if (!clienteSeleccionado()) {
+      <label class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Buscar cliente"
+          aria-label="Buscar cliente"
+          [value]="busqueda()"
+          (input)="busqueda.set($any($event.target).value)"
+        />
+      </label>
+    }
+  </div>
+
+  @if (!clienteSeleccionado()) {
+    <app-card flexCol style="flex-grow:1;">
+      <app-data-table [columns]="columnasClientes" [rows]="clientesFiltrados()" emptyMessage="No hay clientes con saldo pendiente.">
+        <ng-template appCellDef="proximoVencimiento" let-c>{{ c.proximoVencimiento | fechaCorta }}</ng-template>
+        <ng-template appCellDef="totalBalance" let-c>{{ c.totalBalance | cop }}</ng-template>
+        <ng-template appCellDef="estado" let-c>
+          @if (c.tieneVencidas) {
+            <app-status-badge status="danger" label="Tiene cuotas vencidas" />
+          }
+        </ng-template>
+        <ng-template appCellDef="acciones" let-c>
+          <button type="button" class="btn btn-sm btn-primary" (click)="elegirCliente(c.clave)">Buscar y abonar</button>
+        </ng-template>
+      </app-data-table>
+    </app-card>
+  } @else {
+    <div class="cartera-detalle-header">
+      <button type="button" class="btn btn-sm" (click)="volverAClientes()">← Volver a clientes</button>
+      <div style="font-size:16px; font-weight:500;">{{ nombreClienteSeleccionado() }}</div>
+    </div>
+
+    <app-card flexCol style="flex-grow:1;">
+      <app-data-table [columns]="columnasCuotas" [rows]="cuotasDelCliente()" emptyMessage="Este cliente ya no tiene cuotas pendientes.">
+        <ng-template appCellDef="dueDate" let-c>{{ c.dueDate | fechaCorta }}</ng-template>
+        <ng-template appCellDef="balance" let-c>
+          {{ c.balance | cop }}
+          @if (c.paidAmount > 0) {
+            <div class="muted" style="font-size:12px;">Ya abonado: {{ c.paidAmount | cop }} de {{ c.amount | cop }}</div>
+          }
+        </ng-template>
+        <ng-template appCellDef="estado" let-c>
+          <app-status-badge [status]="estadoBadge(c)" [label]="estadoLabel(c)" />
+        </ng-template>
+        <ng-template appCellDef="acciones" let-c>
+          <div class="cartera-acciones">
+            <button type="button" class="btn btn-sm" (click)="verVenta(c)">Ver venta</button>
+            <input
+              type="text"
+              inputmode="numeric"
+              [value]="formatearMiles(c.balance)"
+              (input)="onMontoInput($event)"
+              #monto
+              class="cartera-monto-input"
+              aria-label="Monto del abono"
+            />
+            <button type="button" class="btn btn-sm btn-primary" [disabled]="pagando() === c.id" (click)="pagar(c, parsearMiles(monto.value) ?? 0)">
+              Registrar abono
+            </button>
+          </div>
+        </ng-template>
+      </app-data-table>
+    </app-card>
+  }
+</div>

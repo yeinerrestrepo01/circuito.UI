@@ -1,4 +1,4 @@
-.facturacion { flex-direction: row; }
+.facturacion { display: flex; flex-direction: row; flex-grow: 1; min-height: 0; }
 .facturacion__carrito { flex-grow: 1; min-width: 0; }
 .facturacion__buscador { position: relative; }
 .facturacion__resultados {
@@ -18,21 +18,217 @@
   border: none;
   border-bottom: 1px solid var(--color-border);
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
 .facturacion__resultado:last-child { border-bottom: none; }
 .facturacion__resultado:hover { background: var(--color-page); }
+
 /* `display:flex; flex-direction:column` los da el input `flexCol` de app-card. */
 .facturacion__cliente { width: 380px; flex-shrink: 0; margin-left: var(--space-6); gap: 14px; }
-.facturacion__nit { display: flex; gap: 8px; }
-.facturacion__nit input { flex-grow: 1; }
-.facturacion__totales { border-top: 1px solid var(--color-border); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.facturacion__totales { border-top: 1px solid var(--color-border); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .facturacion__linea { display: flex; justify-content: space-between; }
-.facturacion__linea--total { font-weight: 500; font-size: 16px; margin-top: 4px; }
+.facturacion__linea--total { font-weight: 500; font-size: 17px; margin-top: 4px; }
+
+.facturacion-credito { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 8px; background: var(--color-page); }
+.facturacion-credito__aviso { font-size: 13px; color: var(--color-danger); }
+
+.facturacion-cantidad-input {
+  width: 56px;
+  height: 32px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 14px;
+  color: var(--color-ink);
+}
+.facturacion-precio-input {
+  width: 100px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 14px;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+}
+.facturacion-cantidad-input:focus, .facturacion-precio-input:focus { outline: none; border-color: var(--color-brand); }
+
+.facturacion-series { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+.facturacion-series__input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 13px;
+}
+.facturacion-series__input:focus { outline: none; border-color: var(--color-brand); }
+
+.facturacion-quitar {
+  border: none;
+  background: none;
+  color: var(--color-ink-secondary);
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.facturacion-quitar:hover { color: var(--color-danger); }
+
+/* Combobox de cliente — selección única (a diferencia del de productos en Ajustes, que es múltiple). */
+.facturacion-combo { position: relative; }
+.facturacion-combo__caja {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-page);
+  font-size: 14px;
+  color: var(--color-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.facturacion-combo__opciones {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+}
+.facturacion-combo__buscador {
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  font-size: 14px;
+  outline: none;
+}
+.facturacion-combo__opcion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+}
+.facturacion-combo__opcion:hover { background: var(--color-page); }
+.facturacion-combo__vacio { padding: 12px; font-size: 13px; text-align: center; }
+.facturacion-combo__crear {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  text-align: center;
+  border: none;
+  background: none;
+  color: var(--color-info);
+  cursor: pointer;
+}
+.facturacion-combo__crear:hover { text-decoration: underline; }
 
 @media (max-width: 1100px) {
   .facturacion { flex-direction: column; }
   .facturacion__cliente { width: auto; margin-left: 0; }
+}
+
+/* Panel lateral para crear un cliente sin salir de la venta — mismo patrón flotante ya usado en
+   Proveedores/Categorías/Ajustes/Compras. */
+.facturacion-panel-cliente__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+  animation: facturacion-panel-cliente-fade 0.15s ease-out;
+}
+.facturacion-panel-cliente {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: min(420px, calc(100vw - 32px));
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  z-index: 91;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: facturacion-panel-cliente-slide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.facturacion-panel-cliente__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 17px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.facturacion-panel-cliente__cerrar {
+  border: none;
+  background: none;
+  font-size: 23px;
+  line-height: 1;
+  color: var(--color-ink-secondary);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+.facturacion-panel-cliente__cerrar:hover { color: var(--color-ink); background: var(--color-page); }
+.facturacion-panel-cliente__form { display: flex; flex-direction: column; flex-grow: 1; min-height: 0; }
+.facturacion-panel-cliente__campos { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.facturacion-panel-cliente__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.facturacion-panel-cliente__doc-input {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-page);
+  padding: 0 12px;
+  gap: 6px;
+}
+.facturacion-panel-cliente__doc-input input { border: none; background: transparent; flex: 1; min-width: 0; font-size: 14px; font-family: var(--font-mono); }
+.facturacion-panel-cliente__doc-input input:focus { outline: none; }
+
+@keyframes facturacion-panel-cliente-slide {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes facturacion-panel-cliente-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 480px) {
+  .facturacion-panel-cliente { top: 8px; right: 8px; bottom: 8px; width: calc(100vw - 16px); }
 }

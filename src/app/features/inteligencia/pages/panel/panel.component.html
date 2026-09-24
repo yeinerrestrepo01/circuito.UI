@@ -2,7 +2,7 @@
   <h1 class="page-title">Inteligencia de inventario</h1>
 
   <app-card padded>
-    <div style="font-size:13px; font-weight:500; margin-bottom:16px;">
+    <div style="font-size:14px; font-weight:500; margin-bottom:16px;">
       Clasificación ABC — % de referencias vs. % del valor de inventario
     </div>
     <div class="abc-lista">
@@ -20,7 +20,7 @@
     </div>
   </app-card>
 
-  <div style="font-size:16px; font-weight:500;">Riesgo de obsolescencia</div>
+  <div style="font-size:17px; font-weight:500;">Riesgo de obsolescencia</div>
   <app-card flexCol style="flex-grow:1;">
     <app-data-table [columns]="columnas" [rows]="obsolescencia()" emptyMessage="No hay productos en riesgo de obsolescencia.">
       <ng-template appCellDef="diasSinMovimiento" let-p>

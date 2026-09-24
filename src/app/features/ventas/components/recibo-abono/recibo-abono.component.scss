@@ -1,0 +1,17 @@
+.recibo { position: relative; width: 100%; }
+
+.recibo__encabezado { text-align: center; padding-bottom: 14px; border-bottom: 1px dashed var(--color-border); margin-bottom: 14px; }
+
+.recibo__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--color-border);
+  margin-bottom: 14px;
+}
+
+.recibo__totales { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.recibo__linea { display: flex; justify-content: space-between; }
+.recibo__linea--total { font-weight: 600; font-size: 17px; border-top: 1px dashed var(--color-border); padding-top: 8px; margin-top: 4px; }

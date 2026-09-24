@@ -3,7 +3,10 @@
     <div>
       <h1 class="page-title page-title--sm">Movimientos y ajustes</h1>
     </div>
-    <button class="btn btn-primary" (click)="abrirPanel()">+ Nuevo movimiento</button>
+    <div style="display:flex; gap:8px;">
+      <a routerLink="/inventario/escaneo" class="btn">Escanear código</a>
+      <button class="btn btn-primary" (click)="abrirPanel()">+ Nuevo movimiento</button>
+    </div>
   </div>
 
   <div class="flex-col gap-4" style="min-height:0; flex-grow:1;">
@@ -39,34 +42,52 @@
       <form [formGroup]="form" (ngSubmit)="registrar()" novalidate class="ajustes-panel__form">
         <div class="ajustes-panel__campos">
           <app-form-field label="Productos" inputId="ajuste-producto">
-            <input
-              id="ajuste-producto"
-              type="text"
-              [formControl]="busquedaProducto"
-              placeholder="Buscar por referencia o nombre"
-              autocomplete="off"
-            />
-          </app-form-field>
+            <div class="ajustes-form__combo" #comboProductos>
+              <div class="ajustes-form__combo-caja" (click)="abrirOpciones()">
+                @for (p of productosSeleccionados(); track p.sku) {
+                  <span class="ajustes-form__chip">
+                    {{ p.name }}
+                    <button type="button" (click)="quitarProducto(p.sku); $event.stopPropagation()" aria-label="Quitar">×</button>
+                  </span>
+                }
+                <input
+                  id="ajuste-producto"
+                  type="text"
+                  [formControl]="busquedaProducto"
+                  (focus)="abrirOpciones()"
+                  placeholder="Buscar o elegir producto…"
+                  autocomplete="off"
+                  class="ajustes-form__combo-input"
+                />
+              </div>
 
-          @if (resultadosBusquedaProducto().length > 0) {
-            <div class="ajustes-form__resultados">
-              @for (p of resultadosBusquedaProducto(); track p.sku) {
-                <button type="button" class="ajustes-form__resultado" (click)="agregarProducto(p)">
-                  <span class="mono">{{ p.sku }}</span><span>{{ p.name }}</span>
-                </button>
+              @if (mostrarOpciones()) {
+                <div class="ajustes-form__opciones">
+                  @for (p of resultadosBusquedaProducto(); track p.sku) {
+                    <button
+                      type="button"
+                      class="ajustes-form__opcion"
+                      [class.ajustes-form__opcion--activa]="estaSeleccionado(p.sku)"
+                      (click)="alternarProducto(p)"
+                    >
+                      <span class="mono">{{ p.sku }}</span><span>{{ p.name }}</span>
+                      @if (estaSeleccionado(p.sku)) { <span class="ajustes-form__opcion-check">✓</span> }
+                    </button>
+                  } @empty {
+                    <div class="ajustes-form__opcion-vacia muted">Sin productos que coincidan.</div>
+                  }
+                </div>
               }
             </div>
-          }
+          </app-form-field>
 
-          @if (productosSeleccionados().length === 0) {
-            <div class="muted" style="font-size:12px; margin-top:-8px;">Aún no has seleccionado productos.</div>
-          } @else {
+          @if (productosSeleccionados().length > 0) {
             <div class="ajustes-form__seleccionados">
               @for (p of productosSeleccionados(); track p.sku) {
                 <div class="ajustes-form__seleccionado-fila">
                   <div class="ajustes-form__seleccionado-info">
-                    <span class="mono" style="font-size:11px;">{{ p.sku }}</span>
-                    <span style="font-size:13px;">{{ p.name }}</span>
+                    <span class="mono" style="font-size:12px;">{{ p.sku }}</span>
+                    <span style="font-size:14px;">{{ p.name }}</span>
                   </div>
                   <input
                     type="number"
@@ -78,16 +99,18 @@
                     title="Cantidad"
                   />
                   @if (mostrarProveedor()) {
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="Costo compra"
-                      [value]="p.purchaseCost ?? ''"
-                      (input)="actualizarCostoCompra(p.sku, $any($event.target).value === '' ? null : +$any($event.target).value)"
-                      class="ajustes-form__costo-input"
-                      [attr.aria-label]="'Costo de compra de ' + p.name"
-                      title="Costo de compra"
-                    />
+                    <div class="input-precio ajustes-form__costo-input">
+                      <span class="input-precio__prefijo">$</span>
+                      <input
+                        type="text"
+                        inputmode="numeric"
+                        placeholder="Costo compra"
+                        [value]="p.purchaseCost != null ? formatearMiles(p.purchaseCost) : ''"
+                        (input)="onCostoInput($event, p.sku)"
+                        [attr.aria-label]="'Costo de compra de ' + p.name"
+                        title="Costo de compra"
+                      />
+                    </div>
                   }
                   <button type="button" class="ajustes-form__quitar" (click)="quitarProducto(p.sku)" aria-label="Quitar producto">×</button>
                 </div>
@@ -109,7 +132,7 @@
                 </button>
               }
             </div>
-            <div class="muted" style="font-size:11px; margin-top:6px;">
+            <div class="muted" style="font-size:12px; margin-top:6px;">
               Un ajuste suma o resta stock según el resultado real de un conteo, sin ser una venta ni una compra.
             </div>
           </div>
@@ -128,7 +151,7 @@
               </select>
             </app-form-field>
             @if (proveedores().length === 0) {
-              <div class="muted" style="font-size:12px; margin-top:-8px;">
+              <div class="muted" style="font-size:13px; margin-top:-8px;">
                 Aún no hay proveedores. <a routerLink="/inventario/proveedores">Crea el primero</a>.
               </div>
             }

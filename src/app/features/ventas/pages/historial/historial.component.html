@@ -1,0 +1,44 @@
+<div class="page">
+  <div class="content-header">
+    <div>
+      <h1 class="page-title page-title--sm">Historial de ventas</h1>
+    </div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Buscar por número, cliente o vendedor"
+        aria-label="Buscar venta"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+      />
+    </label>
+  </div>
+
+  <div class="tabs">
+    <a routerLink="/ventas" routerLinkActive="tabs__item--active" [routerLinkActiveOptions]="{ exact: true }" class="tabs__item">Nueva venta</a>
+    <a routerLink="/ventas/historial" routerLinkActive="tabs__item--active" class="tabs__item">Historial</a>
+  </div>
+
+  <app-card flexCol style="flex-grow:1;">
+    <app-data-table [columns]="columnas" [rows]="ventasFiltradas()" emptyMessage="Aún no se ha registrado ninguna venta.">
+      <ng-template appCellDef="createdAt" let-v>{{ v.createdAt | fechaCorta: true }}</ng-template>
+      <ng-template appCellDef="total" let-v>{{ v.total | cop }}</ng-template>
+      <ng-template appCellDef="status" let-v>
+        <app-status-badge [status]="estadoBadge(v.status)" [label]="estadoLabel(v.status)" />
+        @if (v.isCredit) { <span class="historial-credito muted mono">Crédito</span> }
+      </ng-template>
+      <ng-template appCellDef="acciones" let-v>
+        <div class="historial-acciones">
+          <button type="button" class="btn btn-sm" (click)="ver(v)">Ver</button>
+          <button type="button" class="btn btn-sm" (click)="imprimir(v)">Imprimir</button>
+          @if (v.status === 'Completed') {
+            <button type="button" class="btn btn-sm" [disabled]="anulando() === v.id" (click)="anular(v)">Anular</button>
+          }
+        </div>
+      </ng-template>
+    </app-data-table>
+  </app-card>
+</div>

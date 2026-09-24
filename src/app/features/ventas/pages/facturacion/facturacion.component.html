@@ -1,69 +1,209 @@
-<div class="page facturacion">
-  <div class="facturacion__carrito flex-col gap-4">
+<div class="page">
+  <div>
     <h1 class="page-title">Nueva venta</h1>
-    <div class="facturacion__buscador">
-      <label class="search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-          <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Buscar producto por referencia o nombre"
-          aria-label="Buscar producto"
-          [value]="busqueda()"
-          (input)="busqueda.set($any($event.target).value)"
-        />
-      </label>
-      @if (resultadosBusqueda().length > 0) {
-        <app-card class="facturacion__resultados">
-          @for (p of resultadosBusqueda(); track p.sku) {
-            <button type="button" class="facturacion__resultado" (click)="agregar(p.sku)">
-              <span class="mono">{{ p.sku }}</span>
-              <span>{{ p.name }}</span>
-              <span class="muted">{{ p.salePrice | cop }}</span>
-            </button>
-          }
-        </app-card>
-      }
+  </div>
+
+  <div class="tabs">
+    <a routerLink="/ventas" routerLinkActive="tabs__item--active" [routerLinkActiveOptions]="{ exact: true }" class="tabs__item">Nueva venta</a>
+    <a routerLink="/ventas/historial" routerLinkActive="tabs__item--active" class="tabs__item">Historial</a>
+  </div>
+
+  <div class="facturacion">
+    <div class="facturacion__carrito flex-col gap-4">
+      <div class="facturacion__buscador">
+        <label class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input type="text" placeholder="Buscar producto por referencia o nombre" aria-label="Buscar producto" [formControl]="busquedaProducto" />
+        </label>
+        @if (resultadosBusquedaProducto().length > 0) {
+          <app-card class="facturacion__resultados">
+            @for (p of resultadosBusquedaProducto(); track p.sku) {
+              <button type="button" class="facturacion__resultado" (click)="agregarProducto(p)">
+                <span class="mono">{{ p.sku }}</span>
+                <span>{{ p.name }}</span>
+                <span class="muted">{{ p.salePrice | cop }}</span>
+              </button>
+            }
+          </app-card>
+        }
+      </div>
+
+      <app-card flexCol style="flex-grow:1;">
+        <app-data-table [columns]="columnas" [rows]="carrito()" emptyMessage="Busca un producto arriba para agregarlo a la venta.">
+          <ng-template appCellDef="unitPrice" let-i>
+            <input
+              type="text"
+              inputmode="numeric"
+              [value]="formatearMiles(i.unitPrice)"
+              (input)="onPrecioInput($event, i.sku)"
+              class="facturacion-precio-input"
+              [attr.aria-label]="'Precio de ' + i.productName"
+            />
+          </ng-template>
+          <ng-template appCellDef="quantity" let-i>
+            <input
+              type="number"
+              min="1"
+              [value]="i.quantity"
+              (input)="actualizarCantidad(i.sku, +$any($event.target).value)"
+              class="facturacion-cantidad-input"
+              [attr.aria-label]="'Cantidad de ' + i.productName"
+            />
+          </ng-template>
+          <ng-template appCellDef="series" let-i>
+            @if (i.requiresSerialNumber) {
+              <div class="facturacion-series">
+                @for (s of i.serialNumbers; track $index) {
+                  <input
+                    type="text"
+                    class="mono facturacion-series__input"
+                    [value]="s"
+                    (input)="actualizarSerial(i.sku, $index, $any($event.target).value)"
+                    [placeholder]="'Serie ' + ($index + 1)"
+                  />
+                }
+              </div>
+            } @else {
+              <span class="muted">—</span>
+            }
+          </ng-template>
+          <ng-template appCellDef="lineTotal" let-i>{{ subtotalDe(i) | cop }}</ng-template>
+          <ng-template appCellDef="acciones" let-i>
+            <button type="button" class="facturacion-quitar" (click)="quitarItem(i.sku)" aria-label="Quitar producto">×</button>
+          </ng-template>
+        </app-data-table>
+      </app-card>
     </div>
 
-    <app-card flexCol style="flex-grow:1;">
-      <app-data-table [columns]="columnas" [rows]="items()" emptyMessage="Busca un producto arriba para agregarlo a la venta.">
-        <ng-template appCellDef="precio" let-i>{{ i.precio | cop }}</ng-template>
-        <ng-template appCellDef="subtotal" let-i>{{ i.cantidad * i.precio | cop }}</ng-template>
-      </app-data-table>
+    <app-card padded flexCol class="facturacion__cliente">
+      <div style="font-size:17px; font-weight:500;">Cliente y pago</div>
+
+      <app-form-field label="Cliente">
+        <div class="facturacion-combo" #comboCliente>
+          <button type="button" class="facturacion-combo__caja" (click)="abrirOpcionesCliente()">
+            <span>{{ clienteSeleccionado()?.name ?? 'Consumidor final' }}</span>
+            <span class="muted">▾</span>
+          </button>
+          @if (mostrarOpcionesCliente()) {
+            <div class="facturacion-combo__opciones">
+              <input
+                type="text"
+                [formControl]="busquedaCliente"
+                placeholder="Buscar cliente…"
+                autocomplete="off"
+                class="facturacion-combo__buscador"
+              />
+              @if (!esCredito.value) {
+                <button type="button" class="facturacion-combo__opcion" (click)="elegirCliente(null)">Consumidor final</button>
+              }
+              @for (c of resultadosBusquedaCliente(); track c.id) {
+                <button type="button" class="facturacion-combo__opcion" (click)="elegirCliente(c)">
+                  <span>{{ c.name }}</span>
+                  @if (c.fullDocument) { <span class="muted mono" style="font-size:12px;">{{ c.fullDocument }}</span> }
+                </button>
+              } @empty {
+                <div class="facturacion-combo__vacio muted">Sin clientes que coincidan.</div>
+              }
+              <button type="button" class="facturacion-combo__crear" (click)="abrirPanelCliente()">+ Crear cliente</button>
+            </div>
+          }
+        </div>
+      </app-form-field>
+
+      <app-form-field label="Método de pago" inputId="venta-metodo">
+        <select id="venta-metodo" [formControl]="metodoPago">
+          @for (m of opcionesMetodoPago; track m.value) { <option [value]="m.value">{{ m.label }}</option> }
+        </select>
+      </app-form-field>
+
+      <label style="display:flex; align-items:center; gap:8px; font-size:14px;">
+        <input type="checkbox" [formControl]="discriminaIva" />
+        Discriminar IVA (19%)
+      </label>
+
+      <div class="facturacion-credito">
+        <label style="display:flex; align-items:center; gap:8px; font-size:14px;">
+          <input type="checkbox" [formControl]="esCredito" />
+          Venta a crédito (sin interés, en cuotas)
+        </label>
+        @if (esCredito.value) {
+          <app-form-field label="Número de cuotas" inputId="venta-cuotas">
+            <input id="venta-cuotas" type="number" min="1" max="36" [formControl]="numeroCuotas" />
+          </app-form-field>
+          @if (valorCuotaPreview() !== null) {
+            <div class="muted" style="font-size:13px;">{{ numeroCuotas.value }} cuotas mensuales de {{ valorCuotaPreview() | cop }} c/u (aprox.)</div>
+          }
+          @if (faltaClienteParaCredito()) {
+            <div class="facturacion-credito__aviso">Elige un cliente arriba — a crédito no se puede vender a "Consumidor final".</div>
+          }
+        }
+      </div>
+
+      <div class="facturacion__totales">
+        @if (discriminaIva.value) {
+          <div class="muted facturacion__linea"><span>Subtotal</span><span>{{ subtotal() | cop }}</span></div>
+          <div class="muted facturacion__linea"><span>IVA (19%)</span><span>{{ iva() | cop }}</span></div>
+        }
+        <div class="facturacion__linea facturacion__linea--total"><span>Total</span><span>{{ total() | cop }}</span></div>
+      </div>
+
+      <button
+        class="btn btn-primary"
+        style="height:48px;"
+        [disabled]="registrando() || carrito().length === 0 || faltaClienteParaCredito()"
+        (click)="registrar()"
+      >
+        {{ registrando() ? 'Registrando…' : 'Registrar venta' }}
+      </button>
     </app-card>
   </div>
 
-  <app-card padded flexCol class="facturacion__cliente">
-    <div style="font-size:16px; font-weight:500;">Cliente y facturación</div>
-
-    <div [formGroup]="cliente" class="flex-col gap-4">
-      <app-form-field label="NIT o cédula" inputId="nitc">
-        <div class="facturacion__nit">
-          <input id="nitc" type="text" formControlName="nitOCedula" placeholder="1075..." style="font-family:var(--font-mono);" />
-          <button type="button" class="btn btn-sm">Consultar DIAN</button>
+  @if (mostrarPanelCliente()) {
+    <div class="facturacion-panel-cliente__overlay" (click)="cerrarPanelCliente()"></div>
+    <aside class="facturacion-panel-cliente" role="dialog" aria-modal="true" aria-label="Nuevo cliente">
+      <div class="facturacion-panel-cliente__header">
+        <span>Nuevo cliente</span>
+        <button type="button" class="facturacion-panel-cliente__cerrar" (click)="cerrarPanelCliente()" aria-label="Cerrar">×</button>
+      </div>
+      <form [formGroup]="formCliente" (ngSubmit)="guardarCliente()" novalidate class="facturacion-panel-cliente__form">
+        <div class="facturacion-panel-cliente__campos">
+          <div class="muted" style="font-size:13px;">La venta en curso no se pierde — al guardar, este cliente queda elegido para ella.</div>
+          <app-form-field label="Nombre" inputId="fc-cli-nombre">
+            <input id="fc-cli-nombre" type="text" formControlName="name" placeholder="Ej. Juan Pérez" />
+          </app-form-field>
+          <app-form-field label="Tipo de documento (opcional)" inputId="fc-cli-tipo-doc">
+            <select id="fc-cli-tipo-doc" formControlName="documentType">
+              <option value="">Sin documento</option>
+              @for (t of tiposDocumentoCliente; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+            </select>
+          </app-form-field>
+          <app-form-field label="Número de documento" inputId="fc-cli-num-doc">
+            <div class="facturacion-panel-cliente__doc-input">
+              <input id="fc-cli-num-doc" type="text" formControlName="documentNumber" placeholder="Ej. 1075..." />
+              @if (digitoVerificacionClientePreview() !== null) {
+                <span class="muted mono">-{{ digitoVerificacionClientePreview() }}</span>
+              }
+            </div>
+          </app-form-field>
+          <app-form-field label="Dirección (opcional)" inputId="fc-cli-direccion">
+            <input id="fc-cli-direccion" type="text" formControlName="address" />
+          </app-form-field>
+          <app-form-field label="Teléfono (opcional)" inputId="fc-cli-telefono">
+            <input id="fc-cli-telefono" type="tel" formControlName="phone" placeholder="Ej. 3101234567" />
+          </app-form-field>
+          <app-form-field label="Correo (opcional)" inputId="fc-cli-correo">
+            <input id="fc-cli-correo" type="email" formControlName="email" />
+          </app-form-field>
         </div>
-      </app-form-field>
-      <app-form-field label="Nombre o razón social" inputId="nombrec">
-        <input id="nombrec" type="text" formControlName="nombre" />
-      </app-form-field>
-      <app-form-field label="Correo (opcional)" inputId="correoc">
-        <input id="correoc" type="email" formControlName="correo" />
-      </app-form-field>
-    </div>
-
-    <div class="facturacion__totales">
-      <div class="muted facturacion__linea"><span>Subtotal</span><span>{{ subtotal() | cop }}</span></div>
-      <div class="muted facturacion__linea"><span>IVA (19%)</span><span>{{ iva() | cop }}</span></div>
-      <div class="facturacion__linea facturacion__linea--total"><span>Total</span><span>{{ total() | cop }}</span></div>
-    </div>
-
-    <button class="btn btn-primary" style="height:48px;" [disabled]="generando()" (click)="generarFactura()">
-      {{ generando() ? 'Generando…' : 'Generar factura electrónica' }}
-    </button>
-    <div class="muted" style="font-size:11px; text-align:center;">
-      Se enviará a la DIAN — CUFE y código QR se generan automáticamente
-    </div>
-  </app-card>
+        <div class="facturacion-panel-cliente__acciones">
+          <button type="button" class="btn" (click)="cerrarPanelCliente()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoCliente()">
+            {{ guardandoCliente() ? 'Guardando…' : 'Guardar y elegir' }}
+          </button>
+        </div>
+      </form>
+    </aside>
+  }
 </div>
