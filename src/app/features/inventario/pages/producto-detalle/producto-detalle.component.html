@@ -1,8 +1,4 @@
 <div class="page">
-  <div class="breadcrumb">
-    <a routerLink="/inventario">Inventario</a><span>/</span><span class="mono">{{ sku }}</span>
-  </div>
-
   @if (producto(); as p) {
     <div class="detalle-header">
       <div class="detalle-header__imagen"></div>
@@ -10,10 +6,17 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <h1 class="page-title" style="font-size:24px;">{{ p.name }}</h1>
           <app-status-badge [status]="estadoBadge()" [label]="estadoLabel()" />
+          @if (!p.isActive) { <span class="badge">Inactivo</span> }
         </div>
         <div class="mono" style="margin-top:4px;">{{ p.sku }} · {{ p.categoryName }} · Ubicación {{ p.storageLocation }}</div>
       </div>
-      <a [routerLink]="['/inventario/ajustes']" [queryParams]="{ sku: p.sku }" class="btn btn-primary">Registrar movimiento</a>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn" [disabled]="cambiandoEstado()" (click)="cambiarEstado(p)">
+          {{ p.isActive ? 'Inactivar' : 'Reactivar' }}
+        </button>
+        <a [routerLink]="['/inventario', p.sku, 'editar']" class="btn">Editar</a>
+        <a [routerLink]="['/inventario/ajustes']" [queryParams]="{ sku: p.sku }" class="btn btn-primary">Registrar movimiento</a>
+      </div>
     </div>
 
     <div class="detalle-metricas">

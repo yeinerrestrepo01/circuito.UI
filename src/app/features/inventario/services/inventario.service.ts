@@ -4,7 +4,7 @@ import { Observable, finalize, map, tap } from 'rxjs';
 import { API_URL } from '../../../core/config/api-url.token';
 import { ApiResult } from '../../../core/models/api-result.model';
 import { MovimientoInventario, RegistrarMovimientoPayload, RegistrarMovimientosLotePayload } from '../models/movimiento.model';
-import { NuevoProductoPayload, Producto } from '../models/producto.model';
+import { ActualizarProductoPayload, NuevoProductoPayload, Producto } from '../models/producto.model';
 
 /**
  * Estado del módulo de Inventario. Expone signals de solo lectura; toda mutación pasa por sus
@@ -85,6 +85,25 @@ export class InventarioService {
       map((r) => r.data!),
       tap((producto) => this._productos.update((lista) => [producto, ...lista])),
     );
+  }
+
+  actualizarProducto(id: string, payload: ActualizarProductoPayload): Observable<Producto> {
+    return this.http.put<ApiResult<Producto>>(`${this.apiUrl}/products/${id}`, payload).pipe(
+      map((r) => r.data!),
+      tap((producto) => this._reemplazarEnLista(producto)),
+    );
+  }
+
+  /** Activar/inactivar sin borrar nada del historial — ver `Producto.isActive`. */
+  cambiarEstadoProducto(id: string, isActive: boolean): Observable<Producto> {
+    return this.http.patch<ApiResult<Producto>>(`${this.apiUrl}/products/${id}/status`, { isActive }).pipe(
+      map((r) => r.data!),
+      tap((producto) => this._reemplazarEnLista(producto)),
+    );
+  }
+
+  private _reemplazarEnLista(producto: Producto): void {
+    this._productos.update((lista) => lista.map((p) => (p.id === producto.id ? producto : p)));
   }
 }
 

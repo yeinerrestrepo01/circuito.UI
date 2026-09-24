@@ -1,7 +1,6 @@
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { CellDefDirective } from '../../../../shared/components/data-table/cell-def.directive';
 import { ColumnDef } from '../../../../shared/components/data-table/column-def';
@@ -19,7 +18,7 @@ import { ProveedoresService } from '../../services/proveedores.service';
 /** Catálogo de proveedores (ver `nuevo-producto.component.ts`: un producto puede tener varios). */
 @Component({
   selector: 'app-proveedores',
-  imports: [RouterLink, ReactiveFormsModule, CardComponent, DataTableComponent, CellDefDirective, FormFieldComponent],
+  imports: [ReactiveFormsModule, CardComponent, DataTableComponent, CellDefDirective, FormFieldComponent],
   templateUrl: './proveedores.component.html',
   styleUrl: './proveedores.component.scss',
 })

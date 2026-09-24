@@ -1,13 +1,12 @@
 <div class="page">
   <div class="content-header">
     <div>
-      <div class="breadcrumb"><a routerLink="/inventario">Inventario</a><span>/</span><span>Nuevo producto</span></div>
-      <h1 class="page-title page-title--sm">Nuevo producto</h1>
+      <h1 class="page-title page-title--sm">{{ modoEdicion ? 'Editar producto' : 'Nuevo producto' }}</h1>
     </div>
     <div style="display:flex; gap:8px;">
-      <a routerLink="/inventario" class="btn">Cancelar</a>
+      <a [routerLink]="modoEdicion ? ['/inventario', skuGenerado()] : ['/inventario']" class="btn">Cancelar</a>
       <button type="submit" form="form-nuevo-producto" class="btn btn-primary" [disabled]="guardando()">
-        {{ guardando() ? 'Guardando…' : 'Guardar producto' }}
+        {{ guardando() ? 'Guardando…' : modoEdicion ? 'Guardar cambios' : 'Guardar producto' }}
       </button>
     </div>
   </div>
@@ -31,9 +30,11 @@
           <app-form-field label="Referencia (SKU)">
             <div class="nuevo-producto__sku">
               <span class="mono">{{ skuGenerado() || '—' }}</span>
-              <button type="button" class="btn btn-sm" (click)="regenerarCodigo()" [disabled]="!skuGenerado()" title="Generar otro código">
-                ↻
-              </button>
+              @if (!modoEdicion) {
+                <button type="button" class="btn btn-sm" (click)="regenerarCodigo()" [disabled]="!skuGenerado()" title="Generar otro código">
+                  ↻
+                </button>
+              }
             </div>
           </app-form-field>
           <app-form-field label="Unidad de medida">
@@ -63,9 +64,17 @@
           </app-form-field>
         </div>
         <div class="nuevo-producto__grid-2">
-          <app-form-field label="Stock inicial">
-            <input type="number" formControlName="stockInicial" min="0" />
-          </app-form-field>
+          @if (modoEdicion) {
+            <app-form-field label="Stock actual">
+              <div class="mono" style="padding:10px 0; font-size:14px;">
+                {{ stockActual() }} <span class="muted" style="font-weight:400; font-size:12px;">— se ajusta desde Movimientos, no aquí</span>
+              </div>
+            </app-form-field>
+          } @else {
+            <app-form-field label="Stock inicial">
+              <input type="number" formControlName="stockInicial" min="0" />
+            </app-form-field>
+          }
           <app-form-field label="Stock mínimo">
             <input type="number" formControlName="stockMinimo" min="0" />
           </app-form-field>

@@ -1,6 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { CellDefDirective } from '../../../../shared/components/data-table/cell-def.directive';
 import { ColumnDef } from '../../../../shared/components/data-table/column-def';
@@ -13,7 +12,7 @@ import { CategoriasService } from '../../services/categorias.service';
 /** Catálogo de categorías de producto (ver `nuevo-producto.component.ts`, que las consume para el campo Categoría). */
 @Component({
   selector: 'app-categorias',
-  imports: [RouterLink, ReactiveFormsModule, CardComponent, DataTableComponent, CellDefDirective, FormFieldComponent],
+  imports: [ReactiveFormsModule, CardComponent, DataTableComponent, CellDefDirective, FormFieldComponent],
   templateUrl: './categorias.component.html',
   styleUrl: './categorias.component.scss',
 })

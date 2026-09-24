@@ -43,6 +43,9 @@ export interface Producto {
   lifecycleCategory?: string | null;
   /** Días antes del vencimiento en los que se envía cada recordatorio, p. ej. [30, 7]. */
   lifecycleReminderWindowDays?: number[] | null;
+  /** false = el negocio dejó de vender/comprar este producto; sigue en el catálogo (historial, reportes)
+   * pero se oculta de donde alguien lo elegiría para vender/comprar. */
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -61,6 +64,24 @@ export interface NuevoProductoPayload {
   brand: string;
   storageLocation: string;
   initialStock: number;
+  minStock: number;
+  salePrice: number;
+  purchaseCost?: number;
+  unitOfMeasure: UnidadMedida;
+  unitsPerBox?: number;
+  suppliers: NuevoProductoProveedor[];
+  hasLifecycleReminder?: boolean;
+  lifecycleCategory?: string;
+  lifecycleReminderWindowDays?: number[];
+}
+
+/** Espejo de `UpdateProductCommand` — igual que `NuevoProductoPayload` pero sin `sku` ni `initialStock`:
+ * la referencia es la identidad estable del producto y el stock solo cambia por movimientos (Ajustes). */
+export interface ActualizarProductoPayload {
+  name: string;
+  categoryId: string;
+  brand: string;
+  storageLocation: string;
   minStock: number;
   salePrice: number;
   purchaseCost?: number;

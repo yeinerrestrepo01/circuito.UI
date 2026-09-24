@@ -1,11 +1,12 @@
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { ToastService } from '../../../../core/services/toast.service';
-import { NuevoProductoPayload, OPCIONES_UNIDAD_MEDIDA, UnidadMedida } from '../../models/producto.model';
+import { BreadcrumbService } from '../../../../core/services/breadcrumb.service';
+import { ActualizarProductoPayload, NuevoProductoPayload, OPCIONES_UNIDAD_MEDIDA, Producto, UnidadMedida } from '../../models/producto.model';
 import { CategoriasService } from '../../services/categorias.service';
 import { InventarioService } from '../../services/inventario.service';
 import { ProveedoresService } from '../../services/proveedores.service';
@@ -42,12 +43,21 @@ function codigoNumericoAleatorio(): string {
   templateUrl: './nuevo-producto.component.html',
   styleUrl: './nuevo-producto.component.scss',
 })
-export class NuevoProductoComponent implements OnInit {
+export class NuevoProductoComponent implements OnInit, OnDestroy {
   private readonly inventarioService = inject(InventarioService);
   private readonly categoriasService = inject(CategoriasService);
   private readonly proveedoresService = inject(ProveedoresService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly breadcrumbService = inject(BreadcrumbService);
+
+  /** Presente solo bajo la ruta `:sku/editar` — su sola existencia decide todo el modo del formulario. */
+  private readonly skuEditando = this.route.snapshot.paramMap.get('sku');
+  readonly modoEdicion = !!this.skuEditando;
+  private productoId = '';
+  /** Stock actual, solo informativo en modo edición — el stock no se toca aquí, se ajusta desde Ajustes. */
+  readonly stockActual = signal<number | null>(null);
 
   readonly categorias = this.categoriasService.categorias;
   readonly proveedores = this.proveedoresService.proveedores;
@@ -89,8 +99,10 @@ export class NuevoProductoComponent implements OnInit {
 
   /** SKU = CATEGORÍA-MARCA-código numérico (ver `prefijoSku`). No es editable a mano: se compone
    * automáticamente a partir de la categoría y la marca elegidas, como pidió el negocio para que
-   * la referencia sea consistente en todo el catálogo. */
+   * la referencia sea consistente en todo el catálogo. En modo edición es fija (la del producto): la
+   * referencia es su identidad estable, no se regenera. */
   readonly skuGenerado = computed(() => {
+    if (this.modoEdicion) return this.skuEditando ?? '';
     const categoria = this.categorias().find((c) => c.id === this.categoryIdSignal());
     const marca = this.marcaSignal().trim();
     if (!categoria || !marca) return '';
@@ -130,6 +142,41 @@ export class NuevoProductoComponent implements OnInit {
     // para que no viajen en el payload cuando el recordatorio de vida útil no aplica.
     this.form.controls.vidaUtilAplica.valueChanges.subscribe((aplica) => this.actualizarVidaUtil(aplica));
     this.actualizarVidaUtil(this.form.controls.vidaUtilAplica.value);
+
+    if (this.skuEditando) {
+      this.inventarioService.buscarProducto(this.skuEditando).subscribe({
+        next: (producto) => this.precargarDesdeProducto(producto),
+        error: () => {},
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.breadcrumbService.setExtra(null);
+  }
+
+  private precargarDesdeProducto(producto: Producto): void {
+    this.productoId = producto.id;
+    this.stockActual.set(producto.stockQuantity);
+    this.breadcrumbService.setExtra(`${producto.sku} · Editar`);
+    const ventana = this.ventanasAviso.find(
+      (w) => JSON.stringify(w.dias) === JSON.stringify(producto.lifecycleReminderWindowDays ?? []),
+    );
+    this.form.patchValue({
+      nombre: producto.name,
+      categoryId: producto.categoryId,
+      marca: producto.brand,
+      proveedorId: producto.suppliers[0]?.supplierId ?? '',
+      unidadMedida: producto.unitOfMeasure,
+      unidadesPorCaja: producto.unitsPerBox ?? null,
+      ubicacion: producto.storageLocation,
+      stockMinimo: producto.minStock,
+      precioCompra: producto.purchaseCost ?? null,
+      precioVenta: producto.salePrice,
+      vidaUtilAplica: producto.hasLifecycleReminder,
+      vidaUtilCategoria: producto.lifecycleCategory ?? CATEGORIAS_VIDA_UTIL[0],
+      vidaUtilVentana: ventana?.label ?? VENTANAS_AVISO[0].label,
+    });
   }
 
   private actualizarUnidadesPorCaja(unidad: UnidadMedida): void {
@@ -167,6 +214,18 @@ export class NuevoProductoComponent implements OnInit {
       return;
     }
     this.guardando.set(true);
+
+    if (this.modoEdicion) {
+      this.inventarioService.actualizarProducto(this.productoId, this.construirPayloadEdicion()).subscribe({
+        next: (producto) => {
+          this.toast.success(`Producto ${producto.sku} actualizado.`);
+          void this.router.navigate(['/inventario', producto.sku]);
+        },
+        error: () => this.guardando.set(false),
+      });
+      return;
+    }
+
     this.inventarioService.crearProducto(this.construirPayload()).subscribe({
       next: (producto) => {
         this.toast.success(`Producto ${producto.sku} creado.`);
@@ -201,5 +260,10 @@ export class NuevoProductoComponent implements OnInit {
       lifecycleCategory: v.vidaUtilAplica ? v.vidaUtilCategoria : undefined,
       lifecycleReminderWindowDays: v.vidaUtilAplica ? (ventana?.dias ?? []) : undefined,
     };
+  }
+
+  private construirPayloadEdicion(): ActualizarProductoPayload {
+    const { sku: _sku, initialStock: _initialStock, ...resto } = this.construirPayload();
+    return resto;
   }
 }

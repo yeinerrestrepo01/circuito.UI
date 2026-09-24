@@ -1,26 +1,39 @@
-<table class="data-table">
-  <thead>
-    <tr>
-      @for (col of columns(); track col.key) {
-        <th [style.text-align]="col.align ?? 'left'">{{ col.header }}</th>
-      }
-    </tr>
-  </thead>
-  <tbody>
-    @for (row of rows(); track row) {
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
         @for (col of columns(); track col.key) {
-          <td [class.mono]="col.mono" [style.text-align]="col.align ?? 'left'">
-            @if (plantillaPara(col.key); as plantilla) {
-              <ng-container [ngTemplateOutlet]="plantilla" [ngTemplateOutletContext]="{ $implicit: row }" />
-            } @else {
-              {{ valorDe(row, col) }}
-            }
-          </td>
+          <th [style.text-align]="col.align ?? 'left'">{{ col.header }}</th>
         }
       </tr>
-    } @empty {
-      <tr><td [attr.colspan]="columns().length" class="data-table__empty muted">{{ emptyMessage() }}</td></tr>
-    }
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      @for (row of filasPaginadas(); track row) {
+        <tr>
+          @for (col of columns(); track col.key) {
+            <td [class.mono]="col.mono" [style.text-align]="col.align ?? 'left'">
+              @if (plantillaPara(col.key); as plantilla) {
+                <ng-container [ngTemplateOutlet]="plantilla" [ngTemplateOutletContext]="{ $implicit: row }" />
+              } @else {
+                {{ valorDe(row, col) }}
+              }
+            </td>
+          }
+        </tr>
+      } @empty {
+        <tr><td [attr.colspan]="columns().length" class="data-table__empty muted">{{ emptyMessage() }}</td></tr>
+      }
+    </tbody>
+  </table>
+
+  @if (rows().length > pageSize()) {
+    <div class="data-table__pagination">
+      <span class="data-table__pagination-rango muted">{{ rangoTexto() }}</span>
+      <div class="data-table__pagination-botones">
+        <button type="button" class="data-table__pagination-btn" [disabled]="paginaActual() === 1" (click)="paginaAnterior()">‹ Anterior</button>
+        <span class="data-table__pagination-pagina muted">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
+        <button type="button" class="data-table__pagination-btn" [disabled]="paginaActual() === totalPaginas()" (click)="paginaSiguiente()">Siguiente ›</button>
+      </div>
+    </div>
+  }
+</div>

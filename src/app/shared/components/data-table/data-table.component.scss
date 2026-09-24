@@ -10,3 +10,30 @@
 .data-table td { padding: 16px 20px; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table__empty { text-align: center; padding: 32px 20px; }
+
+.data-table-wrap { display: flex; flex-direction: column; min-height: 0; }
+
+.data-table__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.data-table__pagination-botones { display: flex; align-items: center; gap: 12px; }
+.data-table__pagination-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--color-ink);
+  transition: background-color 0.15s ease;
+}
+.data-table__pagination-btn:hover:not(:disabled) { background: var(--color-surface-alt, rgba(0, 0, 0, 0.04)); }
+.data-table__pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.data-table__pagination-pagina { white-space: nowrap; }

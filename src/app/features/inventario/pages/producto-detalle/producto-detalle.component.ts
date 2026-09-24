@@ -1,5 +1,7 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { BreadcrumbService } from '../../../../core/services/breadcrumb.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { ColumnDef } from '../../../../shared/components/data-table/column-def';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
@@ -26,14 +28,17 @@ const ESTADO_LABEL: Record<Producto['status'], string> = {
   templateUrl: './producto-detalle.component.html',
   styleUrl: './producto-detalle.component.scss',
 })
-export class ProductoDetalleComponent implements OnInit {
+export class ProductoDetalleComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly inventarioService = inject(InventarioService);
+  private readonly breadcrumbService = inject(BreadcrumbService);
+  private readonly toast = inject(ToastService);
 
   readonly sku = this.route.snapshot.paramMap.get('sku')!;
   readonly producto = signal<Producto | null>(null);
   readonly movimientos = this.inventarioService.movimientos;
   readonly pestanaActiva = signal<Pestana>('movimientos');
+  readonly cambiandoEstado = signal(false);
 
   readonly estadoBadge = computed<EstadoBadge>(() => {
     const estado = this.producto()?.status;
@@ -56,10 +61,15 @@ export class ProductoDetalleComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.breadcrumbService.setExtra(this.sku);
     // El toast de error ya lo muestra el interceptor global; el handler vacío solo evita
     // que RxJS relance la excepción como "unhandled" al no encontrar un observer de error.
     this.inventarioService.buscarProducto(this.sku).subscribe({ next: (producto) => this.producto.set(producto), error: () => {} });
     this.inventarioService.cargarMovimientos(this.sku).subscribe({ error: () => {} });
+  }
+
+  ngOnDestroy(): void {
+    this.breadcrumbService.setExtra(null);
   }
 
   irA(pestana: Pestana): void {
@@ -76,5 +86,20 @@ export class ProductoDetalleComponent implements OnInit {
 
   labelTipo(tipo: MovimientoInventario['type']): string {
     return LABEL_TIPO_MOVIMIENTO[tipo];
+  }
+
+  cambiarEstado(producto: Producto): void {
+    if (producto.isActive && !confirm(`¿Inactivar "${producto.name}"? Dejará de aparecer para venderlo o comprarlo, pero su historial se conserva.`)) {
+      return;
+    }
+    this.cambiandoEstado.set(true);
+    this.inventarioService.cambiarEstadoProducto(producto.id, !producto.isActive).subscribe({
+      next: (actualizado) => {
+        this.producto.set(actualizado);
+        this.toast.success(actualizado.isActive ? `"${actualizado.name}" reactivado.` : `"${actualizado.name}" inactivado.`);
+        this.cambiandoEstado.set(false);
+      },
+      error: () => this.cambiandoEstado.set(false),
+    });
   }
 }

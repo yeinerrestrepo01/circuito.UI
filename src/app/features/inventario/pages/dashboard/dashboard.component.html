@@ -1,7 +1,6 @@
 <div class="page">
   <div class="content-header">
     <div>
-      <div class="eyebrow">Auto Eléctrico Leos</div>
       <h1 class="page-title">Inventario</h1>
     </div>
     <div class="content-header__actions">
@@ -33,11 +32,29 @@
       </div>
       <app-data-table [columns]="columnasTodos" [rows]="productos()" emptyMessage="Aún no hay productos registrados.">
         <ng-template appCellDef="sku" let-p>
-          <a [routerLink]="['/inventario', p.sku]" class="dashboard-fila-link">{{ p.sku }}</a>
+          <a [routerLink]="['/inventario', p.sku]" class="dashboard-fila-link" [class.dashboard-fila-link--inactivo]="!p.isActive">{{ p.sku }}</a>
+        </ng-template>
+        <ng-template appCellDef="name" let-p>
+          {{ p.name }}
+          @if (!p.isActive) { <span class="badge" style="margin-left:6px;">Inactivo</span> }
         </ng-template>
         <ng-template appCellDef="stockQuantity" let-p>{{ p.stockQuantity }}</ng-template>
         <ng-template appCellDef="status" let-p>
           <app-status-badge [status]="estadoBadge(p.status)" [label]="estadoLabel(p.status)" />
+        </ng-template>
+        <ng-template appCellDef="acciones" let-p>
+          <div class="dashboard-acciones">
+            <a [routerLink]="['/inventario', p.sku]" class="btn btn-sm">Ver</a>
+            <a [routerLink]="['/inventario', p.sku, 'editar']" class="btn btn-sm">Editar</a>
+            <button
+              type="button"
+              class="btn btn-sm"
+              [disabled]="cambiandoEstadoId() === p.id"
+              (click)="cambiarEstado(p)"
+            >
+              {{ p.isActive ? 'Inactivar' : 'Reactivar' }}
+            </button>
+          </div>
         </ng-template>
       </app-data-table>
     </app-card>
