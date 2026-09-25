@@ -65,8 +65,8 @@
 
   <div class="tabs">
     <span class="tabs__item" [class.tabs__item--active]="pestanaActiva() === 'movimientos'" (click)="irA('movimientos')">Movimientos</span>
-    <span class="tabs__item tabs__item--disabled" title="Disponible cuando exista el módulo de Compatibilidad">Compatibilidad</span>
-    <span class="tabs__item tabs__item--disabled" title="Disponible cuando exista el módulo de Alertas">Recordatorios enviados</span>
+    <span class="tabs__item" [class.tabs__item--active]="pestanaActiva() === 'compatibilidad'" (click)="irA('compatibilidad')">Compatibilidad</span>
+    <span class="tabs__item" [class.tabs__item--active]="pestanaActiva() === 'recordatorios'" (click)="irA('recordatorios')">Recordatorios enviados</span>
   </div>
 
   @if (pestanaActiva() === 'movimientos') {
@@ -75,6 +75,71 @@
         <ng-template appCellDef="createdAt" let-m>{{ m.createdAt | fechaCorta: true }}</ng-template>
         <ng-template appCellDef="type" let-m>
           <span [style.color]="colorTipo(m.type)" style="font-weight:500;">{{ labelTipo(m.type) }}</span>
+        </ng-template>
+      </app-data-table>
+    </app-card>
+  }
+
+  @if (pestanaActiva() === 'compatibilidad') {
+    <div class="detalle-compat">
+      <app-card padded flexCol>
+        <div style="font-size:14px; font-weight:500; margin-bottom:10px;">Vehículos compatibles</div>
+        <app-data-table [columns]="columnasCompatibilidades" [rows]="compatibilidades()" emptyMessage="Todavía no hay vehículos cargados para este producto.">
+          <ng-template appCellDef="compatibilityType" let-c>{{ tipoEquivalenciaLabel(c.compatibilityType) }}</ng-template>
+          <ng-template appCellDef="acciones" let-c>
+            <button type="button" class="btn btn-sm" (click)="quitarCompatibilidad(c)">Quitar</button>
+          </ng-template>
+        </app-data-table>
+        <div class="detalle-compat__form">
+          <app-form-field label="Vehículo">
+            <select [formControl]="vehiculoAAgregar">
+              <option value="">Elegir…</option>
+              @for (v of vehiculos(); track v.id) { <option [value]="v.id">{{ etiquetaVehiculo(v) }}</option> }
+            </select>
+          </app-form-field>
+          <app-form-field label="Tipo">
+            <select [formControl]="tipoAAgregar">
+              @for (t of opcionesTipoEquivalencia; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+            </select>
+          </app-form-field>
+          <button type="button" class="btn btn-primary" [disabled]="agregandoCompatibilidad()" (click)="agregarCompatibilidad()">
+            {{ agregandoCompatibilidad() ? 'Agregando…' : '+ Agregar' }}
+          </button>
+        </div>
+      </app-card>
+
+      <app-card padded flexCol>
+        <div style="font-size:14px; font-weight:500; margin-bottom:10px;">Códigos OEM</div>
+        <app-data-table [columns]="columnasOem" [rows]="codigosOem()" emptyMessage="Todavía no hay códigos OEM cargados para este producto.">
+          <ng-template appCellDef="acciones" let-o>
+            <button type="button" class="btn btn-sm" (click)="quitarOem(o)">Quitar</button>
+          </ng-template>
+        </app-data-table>
+        <div class="detalle-compat__form">
+          <app-form-field label="Código OEM">
+            <input type="text" [formControl]="codigoOemAAgregar" placeholder="Ej. 90915-YZZD4" class="mono" />
+          </app-form-field>
+          <app-form-field label="Fabricante (opcional)">
+            <input type="text" [formControl]="fabricanteAAgregar" placeholder="Ej. Toyota" />
+          </app-form-field>
+          <button type="button" class="btn btn-primary" [disabled]="agregandoOem()" (click)="agregarOem()">
+            {{ agregandoOem() ? 'Agregando…' : '+ Agregar' }}
+          </button>
+        </div>
+      </app-card>
+    </div>
+  }
+
+  @if (pestanaActiva() === 'recordatorios') {
+    <app-card flexCol style="flex-grow:1;">
+      <app-data-table
+        [columns]="columnasRecordatorios"
+        [rows]="recordatoriosProducto()"
+        emptyMessage="Este producto todavía no generó recordatorios — solo se generan al vender a un cliente identificado (no 'Consumidor final')."
+      >
+        <ng-template appCellDef="expiryDate" let-r>{{ r.expiryDate | fechaCorta }}</ng-template>
+        <ng-template appCellDef="estado" let-r>
+          <app-status-badge [status]="estadoRecordatorioBadge(r)" [label]="estadoRecordatorioLabel(r)" />
         </ng-template>
       </app-data-table>
     </app-card>

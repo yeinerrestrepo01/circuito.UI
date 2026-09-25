@@ -4,36 +4,104 @@
     <p class="page-sub">Encuentra referencias equivalentes por vehículo o por código OEM</p>
   </div>
 
-  <app-card padded class="catalogo-filtros">
-    <form [formGroup]="filtro" (ngSubmit)="buscar()" class="catalogo-filtros__form">
-      <app-form-field label="Marca" inputId="marca">
-        <select id="marca" formControlName="marca">
-          @for (m of marcas; track m) { <option [value]="m">{{ m }}</option> }
-        </select>
-      </app-form-field>
-      <app-form-field label="Línea" inputId="linea">
-        <select id="linea" formControlName="linea">
-          @for (l of lineas; track l) { <option [value]="l">{{ l }}</option> }
-        </select>
-      </app-form-field>
-      <app-form-field label="Modelo" inputId="modelo">
-        <select id="modelo" formControlName="modelo">
-          @for (m of modelos; track m) { <option [value]="m">{{ m }}</option> }
-        </select>
-      </app-form-field>
-      <app-form-field label="Año" inputId="anio">
-        <select id="anio" formControlName="anio">
-          @for (a of anios; track a) { <option [value]="a">{{ a }}</option> }
-        </select>
-      </app-form-field>
-      <button type="submit" class="btn btn-primary" [disabled]="buscando()">{{ buscando() ? 'Buscando…' : 'Buscar' }}</button>
-    </form>
-  </app-card>
+  <div class="tabs">
+    <span class="tabs__item" [class.tabs__item--active]="modo() === 'vehiculo'" (click)="cambiarModo('vehiculo')">Por vehículo</span>
+    <span class="tabs__item" [class.tabs__item--active]="modo() === 'oem'" (click)="cambiarModo('oem')">Por código OEM</span>
+  </div>
 
-  <app-card flexCol style="flex-grow:1;">
-    <app-data-table [columns]="columnas" [rows]="resultados()" emptyMessage="Elige un vehículo y presiona Buscar para ver equivalencias.">
-      <ng-template appCellDef="tipoEquivalencia" let-r><span class="muted">{{ r.tipoEquivalencia }}</span></ng-template>
-      <ng-template appCellDef="stockRed" let-r>{{ r.stockRed ?? '—' }}</ng-template>
-    </app-data-table>
-  </app-card>
+  @if (modo() === 'vehiculo') {
+    <app-card padded class="catalogo-filtros">
+      <form class="catalogo-filtros__form" (ngSubmit)="buscarPorVehiculo()">
+        <app-form-field label="Marca" inputId="marca">
+          <select id="marca" [ngModel]="marca()" name="marca" (ngModelChange)="elegirMarca($any($event))">
+            <option value="">Elegir…</option>
+            @for (m of marcas(); track m) { <option [value]="m">{{ m }}</option> }
+          </select>
+        </app-form-field>
+        <app-form-field label="Línea" inputId="linea">
+          <select id="linea" [ngModel]="linea()" name="linea" [disabled]="!marca()" (ngModelChange)="elegirLinea($any($event))">
+            <option value="">Elegir…</option>
+            @for (l of lineas(); track l) { <option [value]="l">{{ l }}</option> }
+          </select>
+        </app-form-field>
+        <app-form-field label="Modelo" inputId="modelo">
+          <select id="modelo" [ngModel]="modelo()" name="modelo" [disabled]="!linea()" (ngModelChange)="elegirModelo($any($event))">
+            <option value="">Elegir…</option>
+            @for (m of modelos(); track m) { <option [value]="m">{{ m }}</option> }
+          </select>
+        </app-form-field>
+        <app-form-field label="Año" inputId="anio">
+          <select id="anio" [ngModel]="vehiculoId()" name="anio" [disabled]="!modelo()" (ngModelChange)="vehiculoId.set($any($event))">
+            <option value="">Elegir…</option>
+            @for (v of opcionesAnio(); track v.id) {
+              <option [value]="v.id">{{ v.yearFrom }}{{ v.yearTo ? '-' + v.yearTo : '+' }}</option>
+            }
+          </select>
+        </app-form-field>
+        <button type="submit" class="btn btn-primary" [disabled]="buscando() || !vehiculoId()">{{ buscando() ? 'Buscando…' : 'Buscar' }}</button>
+      </form>
+      <div class="catalogo-filtros__pie">
+        <button type="button" class="catalogo-agregar-vehiculo" (click)="abrirPanelVehiculo()">+ Agregar vehículo</button>
+      </div>
+    </app-card>
+
+    <app-card flexCol style="flex-grow:1;">
+      <app-data-table [columns]="columnasVehiculo" [rows]="resultadosVehiculo()" emptyMessage="Elige un vehículo y presiona Buscar para ver equivalencias.">
+        <ng-template appCellDef="compatibilityType" let-r>
+          <app-status-badge [status]="tipoBadge(r.compatibilityType)" [label]="tipoLabel(r.compatibilityType)" />
+        </ng-template>
+      </app-data-table>
+    </app-card>
+  } @else {
+    <app-card padded class="catalogo-filtros">
+      <form class="catalogo-filtros__form" (ngSubmit)="buscarPorOem()">
+        <app-form-field label="Código OEM">
+          <input type="text" [formControl]="busquedaOem" placeholder="Ej. 90915-YZZD4" class="mono" />
+        </app-form-field>
+        <button type="submit" class="btn btn-primary" [disabled]="buscando() || !busquedaOem.value.trim()">
+          {{ buscando() ? 'Buscando…' : 'Buscar' }}
+        </button>
+      </form>
+    </app-card>
+
+    <app-card flexCol style="flex-grow:1;">
+      <app-data-table [columns]="columnasOem" [rows]="resultadosOem()" emptyMessage="Escribe un código OEM (o parte de él) y presiona Buscar.">
+      </app-data-table>
+    </app-card>
+  }
+
+  @if (mostrarPanelVehiculo()) {
+    <div class="catalogo-panel__overlay" (click)="cerrarPanelVehiculo()"></div>
+    <aside class="catalogo-panel" role="dialog" aria-modal="true" aria-label="Nuevo vehículo">
+      <div class="catalogo-panel__header">
+        <span>Nuevo vehículo</span>
+        <button type="button" class="catalogo-panel__cerrar" (click)="cerrarPanelVehiculo()" aria-label="Cerrar">×</button>
+      </div>
+      <form [formGroup]="formVehiculo" (ngSubmit)="guardarVehiculo()" novalidate class="catalogo-panel__form">
+        <div class="catalogo-panel__campos">
+          <app-form-field label="Marca" inputId="veh-marca">
+            <input id="veh-marca" type="text" formControlName="make" placeholder="Ej. Chevrolet" />
+          </app-form-field>
+          <app-form-field label="Línea" inputId="veh-linea">
+            <input id="veh-linea" type="text" formControlName="line" placeholder="Ej. Spark" />
+          </app-form-field>
+          <app-form-field label="Modelo" inputId="veh-modelo">
+            <input id="veh-modelo" type="text" formControlName="model" placeholder="Ej. GT" />
+          </app-form-field>
+          <app-form-field label="Año desde" inputId="veh-anio-desde">
+            <input id="veh-anio-desde" type="number" formControlName="yearFrom" />
+          </app-form-field>
+          <app-form-field label="Año hasta (vacío si sigue vigente)" inputId="veh-anio-hasta">
+            <input id="veh-anio-hasta" type="number" formControlName="yearTo" />
+          </app-form-field>
+        </div>
+        <div class="catalogo-panel__acciones">
+          <button type="button" class="btn" (click)="cerrarPanelVehiculo()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoVehiculo()">
+            {{ guardandoVehiculo() ? 'Guardando…' : 'Guardar vehículo' }}
+          </button>
+        </div>
+      </form>
+    </aside>
+  }
 </div>

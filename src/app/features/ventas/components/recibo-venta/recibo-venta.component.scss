@@ -34,3 +34,7 @@
 .recibo__linea--total { font-weight: 600; font-size: 17px; border-top: 1px dashed var(--color-border); padding-top: 8px; margin-top: 4px; }
 
 .recibo__plan-pagos { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--color-border); display: flex; flex-direction: column; gap: 8px; }
+
+@media (max-width: 480px) {
+  .recibo__meta { grid-template-columns: 1fr; }
+}

@@ -53,6 +53,10 @@ export class FacturacionComponent implements OnInit {
 
   readonly carrito = signal<ItemCarrito[]>([]);
   readonly registrando = signal(false);
+  /** Para `app-data-table`: rastrea cada fila por su sku (estable) en vez de por referencia del
+   * objeto — `carrito.update()` crea objetos nuevos en cada tecla (precio/cantidad/serial editables),
+   * y rastrear por referencia destruiría y recrearía el input enfocado en cada pulsación. */
+  readonly rastrearPorSku = (item: ItemCarrito): string => item.sku;
 
   readonly columnas: ColumnDef<ItemCarrito>[] = [
     { key: 'sku', header: 'Referencia', mono: true },
@@ -71,7 +75,7 @@ export class FacturacionComponent implements OnInit {
 
   readonly metodoPago = new FormControl<MetodoPago>('Cash', { nonNullable: true });
   readonly discriminaIva = new FormControl(false, { nonNullable: true });
-  private readonly discriminaIvaSignal = toSignal(this.discriminaIva.valueChanges, { initialValue: this.discriminaIva.value });
+  readonly discriminaIvaSignal = toSignal(this.discriminaIva.valueChanges, { initialValue: this.discriminaIva.value });
 
   readonly subtotal = computed(() => this.carrito().reduce((suma, i) => suma + i.quantity * i.unitPrice, 0));
   readonly iva = computed(() => (this.discriminaIvaSignal() ? Math.round(this.subtotal() * 0.19) : 0));
@@ -79,7 +83,7 @@ export class FacturacionComponent implements OnInit {
 
   // --- Venta a crédito: sin interés, solo amortización en cuotas mensuales del total. Exige cliente. ---
   readonly esCredito = new FormControl(false, { nonNullable: true });
-  private readonly esCreditoSignal = toSignal(this.esCredito.valueChanges, { initialValue: this.esCredito.value });
+  readonly esCreditoSignal = toSignal(this.esCredito.valueChanges, { initialValue: this.esCredito.value });
   readonly numeroCuotas = new FormControl(2, { nonNullable: true, validators: [Validators.required, Validators.min(1), Validators.max(36)] });
   /** Vista previa del valor de cada cuota — misma cuenta que CreateSaleCommandHandler.BuildInstallments
    * (última cuota absorbe el residuo del redondeo), solo para que la persona vea qué está prometiendo. */
@@ -90,16 +94,20 @@ export class FacturacionComponent implements OnInit {
   });
   readonly faltaClienteParaCredito = computed(() => this.esCreditoSignal() && !this.clienteSeleccionado());
 
-  // --- Buscador de productos (agrega/incrementa al hacer clic, no es multi-selección) ---
+  // --- Buscador de productos: tipo selector (igual patrón que el combobox multi-selección de
+  // Ajustes) — el desplegable se queda abierto entre un clic y el siguiente, así se pueden ir
+  // marcando varios productos de una sola búsqueda sin que se cierre cada vez. ---
+  @ViewChild('comboProducto') private readonly comboProductoRef?: ElementRef<HTMLElement>;
   readonly busquedaProducto = new FormControl('', { nonNullable: true });
   private readonly terminoBusquedaProducto = toSignal(this.busquedaProducto.valueChanges, { initialValue: '' });
+  readonly mostrarOpcionesProducto = signal(false);
+  /** Sin texto escrito muestra el catálogo completo (como al abrir un <select>); con texto, lo
+   * filtra. No excluye los ya agregados al carrito — se quedan marcados con ✓. */
   readonly resultadosBusquedaProducto = computed(() => {
     const termino = this.terminoBusquedaProducto().trim().toLowerCase();
-    if (!termino) return [];
-    return this.inventarioService
-      .productos()
-      .filter((p) => p.isActive && (p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino)))
-      .slice(0, 8);
+    const productos = this.inventarioService.productos().filter((p) => p.isActive);
+    const filtrados = !termino ? productos : productos.filter((p) => p.sku.toLowerCase().includes(termino) || p.name.toLowerCase().includes(termino));
+    return filtrados.slice(0, 30);
   });
 
   // --- Combobox de cliente (selección única — "Consumidor final" cuando no hay ninguno elegido) ---
@@ -113,6 +121,51 @@ export class FacturacionComponent implements OnInit {
     const clientes = this.clientes();
     return !termino ? clientes : clientes.filter((c) => c.name.toLowerCase().includes(termino));
   });
+
+  // --- "Nombre propio" (registro rápido): solo cédula + nombre + teléfono, directo en el desplegable
+  // del cliente — para el caso de "no es Consumidor final pero tampoco necesito cargar dirección/correo
+  // ahora", más rápido que abrir el panel completo. Igual que este, registra al cliente de una vez y lo
+  // deja elegido para la venta en curso. ---
+  readonly mostrarFormRapido = signal(false);
+  readonly guardandoRapido = signal(false);
+  readonly formRapido = new FormGroup({
+    name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    documentNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    phone: new FormControl('', { nonNullable: true }),
+  });
+
+  abrirFormRapido(): void {
+    this.mostrarFormRapido.set(true);
+  }
+
+  cerrarFormRapido(): void {
+    this.mostrarFormRapido.set(false);
+    this.formRapido.reset({ name: '', documentNumber: '', phone: '' });
+  }
+
+  guardarRapido(): void {
+    if (this.formRapido.invalid || this.guardandoRapido()) {
+      this.formRapido.markAllAsTouched();
+      return;
+    }
+    const v = this.formRapido.getRawValue();
+    this.guardandoRapido.set(true);
+    this.clientesService
+      .crearCliente({
+        name: v.name,
+        documentType: 'Cedula',
+        documentNumber: v.documentNumber.trim(),
+        phone: v.phone || undefined,
+      })
+      .subscribe({
+        next: (cliente) => {
+          this.toast.success(`Cliente "${cliente.name}" registrado.`);
+          this.elegirCliente(cliente); // ya deja formRapido cerrado/reseteado.
+          this.guardandoRapido.set(false);
+        },
+        error: () => this.guardandoRapido.set(false),
+      });
+  }
 
   // --- Panel lateral para crear un cliente sin salir de la venta en curso (no pierde el carrito) ---
   readonly tiposDocumentoCliente = OPCIONES_TIPO_DOCUMENTO_CLIENTE;
@@ -150,13 +203,39 @@ export class FacturacionComponent implements OnInit {
   cerrarOpcionesClienteSiEsAfuera(evento: MouseEvent): void {
     if (this.mostrarOpcionesCliente() && !this.comboClienteRef?.nativeElement.contains(evento.target as Node)) {
       this.mostrarOpcionesCliente.set(false);
+      this.cerrarFormRapido();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  cerrarOpcionesProductoSiEsAfuera(evento: MouseEvent): void {
+    if (this.mostrarOpcionesProducto() && !this.comboProductoRef?.nativeElement.contains(evento.target as Node)) {
+      this.mostrarOpcionesProducto.set(false);
     }
   }
 
   @HostListener('document:keydown.escape')
   cerrarConEscape(): void {
     if (this.mostrarPanelCliente()) this.cerrarPanelCliente();
+    else if (this.mostrarFormRapido()) this.cerrarFormRapido();
     else if (this.mostrarOpcionesCliente()) this.mostrarOpcionesCliente.set(false);
+    else if (this.mostrarOpcionesProducto()) this.mostrarOpcionesProducto.set(false);
+  }
+
+  abrirOpcionesProducto(): void {
+    this.mostrarOpcionesProducto.set(true);
+  }
+
+  estaEnCarrito(sku: string): boolean {
+    return this.carrito().some((i) => i.sku === sku);
+  }
+
+  /** Cada resultado del selector alterna: si no estaba en el carrito lo agrega, si ya estaba lo
+   * quita — igual criterio que el combobox multi-selección de Ajustes. Para subir la cantidad de
+   * algo ya agregado se usa el input de cantidad de la fila, no volver a tocar el selector. */
+  alternarProducto(producto: Producto): void {
+    if (this.estaEnCarrito(producto.sku)) this.quitarItem(producto.sku);
+    else this.agregarProducto(producto);
   }
 
   abrirOpcionesCliente(): void {
@@ -167,6 +246,7 @@ export class FacturacionComponent implements OnInit {
     this.clienteSeleccionado.set(cliente);
     this.mostrarOpcionesCliente.set(false);
     this.busquedaCliente.setValue('');
+    this.cerrarFormRapido();
   }
 
   /** Abre el panel de "nuevo cliente" sin abandonar la venta en curso (el carrito no se pierde). */
@@ -227,7 +307,8 @@ export class FacturacionComponent implements OnInit {
       };
       return [...items, this.conCantidad(base, 1)];
     });
-    this.busquedaProducto.setValue('');
+    // No se limpia el buscador — así se pueden ir marcando varios resultados de la misma búsqueda
+    // sin que el selector se resetee entre uno y otro (ver alternarProducto).
   }
 
   /** Ajusta `serialNumbers` al tamaño de `cantidad` (mismo criterio que EscaneoComponent). */

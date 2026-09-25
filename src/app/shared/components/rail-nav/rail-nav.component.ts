@@ -1,4 +1,4 @@
-import { Component, booleanAttribute, computed, inject, input } from '@angular/core';
+import { Component, HostListener, booleanAttribute, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -54,7 +54,26 @@ export class RailNavComponent {
     this.accent() === 'info' ? 'var(--color-info-dark)' : 'var(--color-brand-dark)',
   );
 
+  /** Solo tiene efecto visual por debajo de 640px (ver rail-nav.component.scss) — en escritorio/tablet
+   * el rail se ve exactamente igual que siempre, `abierto` no cambia nada. Con 9 secciones no cabía
+   * como barra inferior de íconos, así que en móvil se vuelve un menú hamburguesa deslizable, mismo
+   * patrón (overlay + slide) que los paneles laterales de Proveedores/Clientes/Ajustes. */
+  readonly abierto = signal(false);
+
   trayectos(icono: string): string[] {
     return icono.split('|');
+  }
+
+  alternar(): void {
+    this.abierto.update((v) => !v);
+  }
+
+  cerrar(): void {
+    this.abierto.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  cerrarConEscape(): void {
+    if (this.abierto()) this.cerrar();
   }
 }

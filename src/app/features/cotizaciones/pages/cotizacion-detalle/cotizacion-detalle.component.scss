@@ -1,0 +1,28 @@
+.cotizacion-detalle { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.cotizacion-detalle__acciones { display: flex; justify-content: space-between; width: 100%; max-width: 520px; }
+.cotizacion-detalle__recibo { width: 100%; max-width: 520px; }
+
+.cotizacion-detalle__conversion { text-align: left; }
+.cotizacion-detalle__credito {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 10px; padding: 10px; border-radius: 8px; background: var(--color-page);
+}
+.cotizacion-detalle__aviso { font-size: 13px; color: var(--color-danger); }
+
+.cotizacion-detalle__seriales {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-border);
+}
+.cotizacion-detalle__serial-linea { display: flex; flex-direction: column; gap: 6px; }
+.cotizacion-detalle__serial-inputs { display: flex; flex-wrap: wrap; gap: 6px; }
+.cotizacion-detalle__serial-inputs input {
+  width: 140px; height: 32px; padding: 0 8px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); font-size: 13px;
+}
+.cotizacion-detalle__serial-inputs input:focus { outline: none; border-color: var(--color-brand); }
+
+.cotizacion-detalle__conversion-acciones {
+  display: flex; justify-content: flex-end; gap: 8px;
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--color-border);
+}

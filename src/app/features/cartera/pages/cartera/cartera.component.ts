@@ -49,7 +49,32 @@ export class CarteraComponent implements OnInit {
   readonly formatearMiles = formatearMiles;
   readonly parsearMiles = parsearMiles;
 
-  readonly totalPendiente = computed(() => this.cartera().reduce((suma, c) => suma + c.balance, 0));
+  /** Filtro por rango de vencimiento — formato `yyyy-MM-dd` de `<input type="date">`, vacío = sin tope. */
+  readonly fechaDesde = signal('');
+  readonly fechaHasta = signal('');
+  readonly hayFiltroFecha = computed(() => !!this.fechaDesde() || !!this.fechaHasta());
+
+  /** Todas las cuotas pendientes que caen dentro del rango elegido — base de todo lo demás (lista de
+   * clientes, sus cuotas, y el total del encabezado), así el filtro de fecha se siente "aplicado de
+   * verdad" en vez de solo maquillar la tabla. */
+  readonly carteraEnRango = computed(() => {
+    const desde = this.fechaDesde();
+    const hasta = this.fechaHasta();
+    if (!desde && !hasta) return this.cartera();
+    return this.cartera().filter((c) => {
+      const fecha = c.dueDate.slice(0, 10);
+      if (desde && fecha < desde) return false;
+      if (hasta && fecha > hasta) return false;
+      return true;
+    });
+  });
+
+  readonly totalPendiente = computed(() => this.carteraEnRango().reduce((suma, c) => suma + c.balance, 0));
+
+  limpiarFechas(): void {
+    this.fechaDesde.set('');
+    this.fechaHasta.set('');
+  }
 
   private clave(c: CuotaPendiente): string {
     return c.customerId ?? c.customerName;
@@ -57,7 +82,7 @@ export class CarteraComponent implements OnInit {
 
   readonly clientesConSaldo = computed<ClienteConSaldo[]>(() => {
     const porCliente = new Map<string, CuotaPendiente[]>();
-    for (const c of this.cartera()) {
+    for (const c of this.carteraEnRango()) {
       const k = this.clave(c);
       porCliente.set(k, [...(porCliente.get(k) ?? []), c]);
     }
@@ -81,7 +106,7 @@ export class CarteraComponent implements OnInit {
   readonly cuotasDelCliente = computed(() => {
     const clave = this.clienteSeleccionado();
     if (!clave) return [];
-    return this.cartera()
+    return this.carteraEnRango()
       .filter((c) => this.clave(c) === clave)
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   });

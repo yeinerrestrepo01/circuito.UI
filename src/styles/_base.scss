@@ -2,6 +2,13 @@
   Circuito — Estilos globales mínimos.
   Reset, tipografía base y utilidades sin componente propio (botones, .mono, .muted, buscador,
   encabezado de página). Los componentes reutilizables viven en shared/components con estilos encapsulados.
+
+  Breakpoints usados en toda la app (no hay variables Sass para esto — se documentan acá como
+  convención, ver auditoría de responsive):
+    480px  — ajustes finos de teléfono (grillas de 2 columnas a 1, paneles flotantes a pantalla completa).
+    640px  — colapsos de nivel "teléfono grande" (menú hamburguesa del rail, tablas/paneles que necesitan
+             un escalón intermedio antes de 1100px).
+    1100px — corte tablet/escritorio chico (layouts de 2 columnas pasan a 1).
 */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -24,8 +31,8 @@ button, input, select, textarea { font-family: inherit; }
 .page-title { font-family: var(--font-display); font-weight: 700; font-size: 35px; letter-spacing: -0.01em; margin: 0; }
 .page-title--sm { font-size: 31px; margin-top: 6px; }
 .page-sub { font-size: 13px; color: var(--color-ink-secondary); margin-top: 6px; }
-.content-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
-.content-header__actions { display: flex; align-items: center; gap: var(--space-4); }
+.content-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.content-header__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
 .breadcrumb { font-size: 14px; color: var(--color-ink-secondary); display: flex; gap: var(--space-2); }
 .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-6); flex-grow: 1; min-height: 0; }
 .flex-col { display: flex; flex-direction: column; }
@@ -37,6 +44,7 @@ button, input, select, textarea { font-family: inherit; }
   border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-ink);
   font-size: 14px; font-weight: 500; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  white-space: nowrap; flex-shrink: 0;
 }
 .btn:hover { text-decoration: none; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -63,6 +71,12 @@ button, input, select, textarea { font-family: inherit; }
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: var(--radius-md); padding: 9px 14px;
 }
+/* Solo crece para llenar la línea cuando el buscador es hijo directo de `.content-header` (título +
+   buscador, sin fila de botones al lado — ver Cartera/Historial). Cuando vive DENTRO de
+   `.content-header__actions` junto a varios botones (ver Inventario), se queda con su ancho natural,
+   igual que cada botón — si creciera les robaría espacio y su texto se envolvería en dos líneas
+   (bug real, ver captura del usuario). */
+.content-header > .search { flex: 1 1 220px; min-width: 0; }
 .search input { border: none; background: transparent; outline: none; font-size: 14px; flex-grow: 1; min-width: 0; color: var(--color-ink); }
 .search:focus-within { outline: 2px solid var(--color-info); outline-offset: 2px; }
 

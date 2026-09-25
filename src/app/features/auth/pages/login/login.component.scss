@@ -18,8 +18,8 @@
 .login__swatches { display: flex; gap: 8px; margin-top: 32px; }
 .login__swatch { width: 28px; height: 28px; border-radius: 4px; display: inline-block; }
 
-.login__panel { width: 50%; display: flex; align-items: center; justify-content: center; }
-.login__form { width: 360px; display: flex; flex-direction: column; gap: 16px; }
+.login__panel { width: 50%; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
+.login__form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 16px; }
 .login__title { font-family: var(--font-display); font-weight: 600; font-size: 25px; margin: 0; }
 .login__submit { height: 48px; }
 .login__error { font-size: 13px; color: var(--color-danger); }

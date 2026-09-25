@@ -5,18 +5,31 @@
       <p class="cartera-resumen">Total pendiente por cobrar: <strong>{{ totalPendiente() | cop }}</strong></p>
     </div>
     @if (!clienteSeleccionado()) {
-      <label class="search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Buscar cliente"
-          aria-label="Buscar cliente"
-          [value]="busqueda()"
-          (input)="busqueda.set($any($event.target).value)"
-        />
-      </label>
+      <div class="cartera-filtros">
+        <label class="search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar cliente"
+            aria-label="Buscar cliente"
+            [value]="busqueda()"
+            (input)="busqueda.set($any($event.target).value)"
+          />
+        </label>
+        <label class="cartera-filtro-fecha">
+          Vence desde
+          <input type="date" [value]="fechaDesde()" (change)="fechaDesde.set($any($event.target).value)" />
+        </label>
+        <label class="cartera-filtro-fecha">
+          Hasta
+          <input type="date" [value]="fechaHasta()" (change)="fechaHasta.set($any($event.target).value)" />
+        </label>
+        @if (hayFiltroFecha()) {
+          <button type="button" class="btn btn-sm" (click)="limpiarFechas()">Limpiar fechas</button>
+        }
+      </div>
     }
   </div>
 

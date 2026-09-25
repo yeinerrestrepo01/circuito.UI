@@ -1,0 +1,187 @@
+<div class="page">
+  <div>
+    <h1 class="page-title">Nueva cotización</h1>
+  </div>
+
+  <div class="tabs">
+    <a routerLink="/ventas" routerLinkActive="tabs__item--active" [routerLinkActiveOptions]="{ exact: true }" class="tabs__item">Nueva venta</a>
+    <a routerLink="/ventas/cotizaciones" routerLinkActive="tabs__item--active" class="tabs__item">Cotizaciones</a>
+    <a routerLink="/ventas/historial" routerLinkActive="tabs__item--active" class="tabs__item">Historial</a>
+  </div>
+
+  <div class="cotizacion">
+    <div class="cotizacion__carrito flex-col gap-4">
+      <div class="cotizacion__buscador" #comboProducto>
+        <label class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar producto por referencia o nombre"
+            aria-label="Buscar producto"
+            [formControl]="busquedaProducto"
+            (focus)="abrirOpcionesProducto()"
+          />
+        </label>
+        @if (mostrarOpcionesProducto()) {
+          <app-card class="cotizacion__resultados">
+            @for (p of resultadosBusquedaProducto(); track p.sku) {
+              <button
+                type="button"
+                class="cotizacion__resultado"
+                [class.cotizacion__resultado--activo]="estaEnCarrito(p.sku)"
+                (click)="alternarProducto(p)"
+              >
+                <span class="mono">{{ p.sku }}</span>
+                <span>{{ p.name }}</span>
+                <span class="muted">{{ p.salePrice | cop }}</span>
+                @if (estaEnCarrito(p.sku)) { <span class="cotizacion__resultado-check">✓</span> }
+              </button>
+            } @empty {
+              <div class="cotizacion__resultado-vacio muted">Sin productos que coincidan.</div>
+            }
+          </app-card>
+        }
+      </div>
+
+      <app-card flexCol style="flex-grow:1;">
+        <app-data-table [columns]="columnas" [rows]="carrito()" [trackBy]="rastrearPorSku" emptyMessage="Busca un producto arriba para agregarlo a la cotización.">
+          <ng-template appCellDef="unitPrice" let-i>
+            <input
+              type="text"
+              inputmode="numeric"
+              [value]="formatearMiles(i.unitPrice)"
+              (input)="onPrecioInput($event, i.sku)"
+              class="cotizacion-precio-input"
+              [attr.aria-label]="'Precio de ' + i.productName"
+            />
+          </ng-template>
+          <ng-template appCellDef="quantity" let-i>
+            <input
+              type="number"
+              min="1"
+              [value]="i.quantity"
+              (input)="actualizarCantidad(i.sku, +$any($event.target).value)"
+              class="cotizacion-cantidad-input"
+              [attr.aria-label]="'Cantidad de ' + i.productName"
+            />
+          </ng-template>
+          <ng-template appCellDef="lineTotal" let-i>{{ subtotalDe(i) | cop }}</ng-template>
+          <ng-template appCellDef="acciones" let-i>
+            <button type="button" class="cotizacion-quitar" (click)="quitarItem(i.sku)" aria-label="Quitar producto">×</button>
+          </ng-template>
+        </app-data-table>
+      </app-card>
+    </div>
+
+    <app-card padded flexCol class="cotizacion__cliente">
+      <div style="font-size:17px; font-weight:500;">Cliente</div>
+      <p class="muted" style="font-size:13px; margin:0;">
+        El método de pago, el IVA y si es a crédito se deciden recién si esta cotización se convierte en venta.
+      </p>
+
+      <app-form-field label="Cliente">
+        <div class="cotizacion-combo" #comboCliente>
+          <button type="button" class="cotizacion-combo__caja" (click)="abrirOpcionesCliente()">
+            <span>{{ clienteSeleccionado()?.name ?? 'Consumidor final' }}</span>
+            <span class="muted">▾</span>
+          </button>
+          @if (mostrarOpcionesCliente()) {
+            <div class="cotizacion-combo__opciones">
+              @if (!mostrarFormRapido()) {
+                <input
+                  type="text"
+                  [formControl]="busquedaCliente"
+                  placeholder="Buscar cliente…"
+                  autocomplete="off"
+                  class="cotizacion-combo__buscador"
+                />
+                <button type="button" class="cotizacion-combo__opcion" (click)="elegirCliente(null)">Consumidor final</button>
+                @for (c of resultadosBusquedaCliente(); track c.id) {
+                  <button type="button" class="cotizacion-combo__opcion" (click)="elegirCliente(c)">
+                    <span>{{ c.name }}</span>
+                    @if (c.fullDocument) { <span class="muted mono" style="font-size:12px;">{{ c.fullDocument }}</span> }
+                  </button>
+                } @empty {
+                  <div class="cotizacion-combo__vacio muted">Sin clientes que coincidan.</div>
+                }
+                <button type="button" class="cotizacion-combo__crear" (click)="abrirFormRapido()">+ Nombre propio (registro rápido)</button>
+                <button type="button" class="cotizacion-combo__crear" (click)="abrirPanelCliente()">+ Cliente completo</button>
+              } @else {
+                <form class="cotizacion-combo__rapido" [formGroup]="formRapido" (ngSubmit)="guardarRapido()" novalidate>
+                  <div class="muted" style="font-size:12px;">Solo lo esencial — dirección/correo quedan en "Cliente completo".</div>
+                  <input type="text" formControlName="name" placeholder="Nombre" autocomplete="off" class="cotizacion-combo__buscador" />
+                  <input type="text" formControlName="documentNumber" placeholder="Cédula" autocomplete="off" class="cotizacion-combo__buscador mono" />
+                  <input type="tel" formControlName="phone" placeholder="Teléfono (opcional)" autocomplete="off" class="cotizacion-combo__buscador" />
+                  <div class="cotizacion-combo__rapido-acciones">
+                    <button type="button" class="btn btn-sm" (click)="cerrarFormRapido()">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-primary" [disabled]="guardandoRapido()">
+                      {{ guardandoRapido() ? 'Registrando…' : 'Registrar y usar' }}
+                    </button>
+                  </div>
+                </form>
+              }
+            </div>
+          }
+        </div>
+      </app-form-field>
+
+      <div class="cotizacion__totales">
+        <div class="cotizacion__linea cotizacion__linea--total"><span>Total</span><span>{{ subtotal() | cop }}</span></div>
+        <div class="muted" style="font-size:12px;">Válida por 15 días desde que se genere.</div>
+      </div>
+
+      <button class="btn btn-primary" style="height:48px;" [disabled]="registrando() || carrito().length === 0" (click)="registrar()">
+        {{ registrando() ? 'Generando…' : 'Generar cotización' }}
+      </button>
+    </app-card>
+  </div>
+
+  @if (mostrarPanelCliente()) {
+    <div class="cotizacion-panel-cliente__overlay" (click)="cerrarPanelCliente()"></div>
+    <aside class="cotizacion-panel-cliente" role="dialog" aria-modal="true" aria-label="Nuevo cliente">
+      <div class="cotizacion-panel-cliente__header">
+        <span>Nuevo cliente</span>
+        <button type="button" class="cotizacion-panel-cliente__cerrar" (click)="cerrarPanelCliente()" aria-label="Cerrar">×</button>
+      </div>
+      <form [formGroup]="formCliente" (ngSubmit)="guardarCliente()" novalidate class="cotizacion-panel-cliente__form">
+        <div class="cotizacion-panel-cliente__campos">
+          <div class="muted" style="font-size:13px;">La cotización en curso no se pierde — al guardar, este cliente queda elegido para ella.</div>
+          <app-form-field label="Nombre" inputId="cot-cli-nombre">
+            <input id="cot-cli-nombre" type="text" formControlName="name" placeholder="Ej. Juan Pérez" />
+          </app-form-field>
+          <app-form-field label="Tipo de documento (opcional)" inputId="cot-cli-tipo-doc">
+            <select id="cot-cli-tipo-doc" formControlName="documentType">
+              <option value="">Sin documento</option>
+              @for (t of tiposDocumentoCliente; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+            </select>
+          </app-form-field>
+          <app-form-field label="Número de documento" inputId="cot-cli-num-doc">
+            <div class="cotizacion-panel-cliente__doc-input">
+              <input id="cot-cli-num-doc" type="text" formControlName="documentNumber" placeholder="Ej. 1075..." />
+              @if (digitoVerificacionClientePreview() !== null) {
+                <span class="muted mono">-{{ digitoVerificacionClientePreview() }}</span>
+              }
+            </div>
+          </app-form-field>
+          <app-form-field label="Dirección (opcional)" inputId="cot-cli-direccion">
+            <input id="cot-cli-direccion" type="text" formControlName="address" />
+          </app-form-field>
+          <app-form-field label="Teléfono (opcional)" inputId="cot-cli-telefono">
+            <input id="cot-cli-telefono" type="tel" formControlName="phone" placeholder="Ej. 3101234567" />
+          </app-form-field>
+          <app-form-field label="Correo (opcional)" inputId="cot-cli-correo">
+            <input id="cot-cli-correo" type="email" formControlName="email" />
+          </app-form-field>
+        </div>
+        <div class="cotizacion-panel-cliente__acciones">
+          <button type="button" class="btn" (click)="cerrarPanelCliente()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoCliente()">
+            {{ guardandoCliente() ? 'Guardando…' : 'Guardar y elegir' }}
+          </button>
+        </div>
+      </form>
+    </aside>
+  }
+</div>

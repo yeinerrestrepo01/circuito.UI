@@ -1,0 +1,83 @@
+<div class="page cotizacion-detalle">
+  @if (cotizacion(); as c) {
+    <div class="cotizacion-detalle__acciones">
+      <a routerLink="/ventas/cotizaciones" class="btn">← Volver a cotizaciones</a>
+      <button type="button" class="btn btn-primary" (click)="abrirImpresion(c.id)">Imprimir</button>
+    </div>
+
+    <app-card padded class="cotizacion-detalle__recibo">
+      <app-recibo-cotizacion [cotizacion]="c" [nombreNegocio]="nombreNegocio" [nitEmpresa]="nitEmpresa()" />
+    </app-card>
+
+    @if (puedeConvertir() && !mostrarConversion()) {
+      <div class="cotizacion-detalle__recibo" style="text-align:center;">
+        <button type="button" class="btn btn-primary" style="height:44px; padding:0 24px;" (click)="abrirConversion()">Convertir en venta</button>
+      </div>
+    }
+
+    @if (mostrarConversion()) {
+      <app-card padded class="cotizacion-detalle__recibo cotizacion-detalle__conversion">
+        <div style="font-size:16px; font-weight:500; margin-bottom:4px;">Convertir en venta</div>
+        <p class="muted" style="font-size:13px; margin:0 0 14px;">
+          Los productos, cantidades y precios ya están congelados de la cotización — acá solo falta decidir el pago.
+        </p>
+
+        <app-form-field label="Método de pago" inputId="conv-metodo">
+          <select id="conv-metodo" [formControl]="metodoPago">
+            @for (m of opcionesMetodoPago; track m.value) { <option [value]="m.value">{{ m.label }}</option> }
+          </select>
+        </app-form-field>
+
+        <label style="display:flex; align-items:center; gap:8px; font-size:14px; margin-top:10px;">
+          <input type="checkbox" [formControl]="discriminaIva" />
+          Discriminar IVA (19%)
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px; font-size:14px; margin-top:8px;">
+          <input type="checkbox" [formControl]="esCredito" />
+          Venta a crédito (sin interés, en cuotas)
+        </label>
+
+        @if (esCredito.value) {
+          <div class="cotizacion-detalle__credito">
+            <app-form-field label="Número de cuotas" inputId="conv-cuotas">
+              <input id="conv-cuotas" type="number" min="1" max="36" [formControl]="numeroCuotas" />
+            </app-form-field>
+            @if (faltaClienteParaCredito()) {
+              <div class="cotizacion-detalle__aviso">Esta cotización es a "Consumidor final" — a crédito exige un cliente identificado.</div>
+            }
+          </div>
+        }
+
+        @if (lineasConSerie().length > 0) {
+          <div class="cotizacion-detalle__seriales">
+            <div style="font-size:14px; font-weight:500;">Números de serie</div>
+            @for (l of lineasConSerie(); track l.sku) {
+              <div class="cotizacion-detalle__serial-linea">
+                <span class="muted" style="font-size:13px;">{{ l.productName }} ({{ l.quantity }})</span>
+                <div class="cotizacion-detalle__serial-inputs">
+                  @for (s of serialesPorSku()[l.sku]; track $index) {
+                    <input
+                      type="text"
+                      class="mono"
+                      [value]="s"
+                      (input)="actualizarSerial(l.sku, $index, $any($event.target).value)"
+                      [placeholder]="'Serie ' + ($index + 1)"
+                    />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="cotizacion-detalle__conversion-acciones">
+          <button type="button" class="btn" (click)="cerrarConversion()">Cancelar</button>
+          <button type="button" class="btn btn-primary" [disabled]="convirtiendo() || faltaClienteParaCredito()" (click)="convertir()">
+            {{ convirtiendo() ? 'Convirtiendo…' : 'Confirmar y generar venta' }}
+          </button>
+        </div>
+      </app-card>
+    }
+  }
+</div>

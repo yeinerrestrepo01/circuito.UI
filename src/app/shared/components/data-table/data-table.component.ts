@@ -23,6 +23,12 @@ export class DataTableComponent<T> {
   /** Texto mostrado cuando `rows` está vacío. */
   readonly emptyMessage = input('Sin datos para mostrar.');
   readonly pageSize = input(10);
+  /** Clave estable para el `@for` de filas (p. ej. `(row) => row.sku`). Por defecto rastrea por
+   * referencia del objeto — sirve mientras las filas no cambien de identidad entre renders. Si una
+   * pantalla reconstruye el array en cada tecla (p. ej. un input editable de precio/cantidad dentro
+   * de una celda, ver Facturación), tracking por referencia destruye y recrea ese `<tr>` — y con él el
+   * input enfocado — en cada pulsación, perdiendo el foco. Pasar `trackBy` evita eso. */
+  readonly trackBy = input<(row: T) => unknown>((row) => row);
 
   private readonly cellTemplates = contentChildren(CellDefDirective<T>);
   private readonly pagina = signal(1);

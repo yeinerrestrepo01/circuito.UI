@@ -15,3 +15,7 @@
 .recibo__totales { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .recibo__linea { display: flex; justify-content: space-between; }
 .recibo__linea--total { font-weight: 600; font-size: 17px; border-top: 1px dashed var(--color-border); padding-top: 8px; margin-top: 4px; }
+
+@media (max-width: 480px) {
+  .recibo__meta { grid-template-columns: 1fr; }
+}

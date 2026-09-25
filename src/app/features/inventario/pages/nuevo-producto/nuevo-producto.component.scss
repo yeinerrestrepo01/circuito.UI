@@ -17,8 +17,6 @@
 .nuevo-producto__sku .btn { height: 26px; padding: 0 8px; }
 .nuevo-producto__codigo-input { display: flex; gap: 8px; }
 .nuevo-producto__codigo-input input { flex-grow: 1; min-width: 0; }
-.nuevo-producto__pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
-.nuevo-producto__pill { background: var(--color-page); border: 1px solid var(--color-border); padding: 4px 10px; border-radius: 999px; }
 .nuevo-producto__dropzone {
   width: 100%;
   height: 100px;
@@ -46,4 +44,8 @@
 
 @media (max-width: 1100px) {
   .nuevo-producto { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .nuevo-producto__grid-2 { grid-template-columns: 1fr; }
 }

@@ -13,3 +13,11 @@
 }
 .venta-detalle__cuota:last-child { border-bottom: none; }
 .venta-detalle__monto-input { width: 90px; height: 30px; border: 1px solid var(--color-border); border-radius: 6px; padding: 0 8px; font-size: 14px; }
+
+/* La grilla de 6 columnas fijas no cabe en un teléfono — se apila en una sola columna, con el
+   input y el botón de abono a ancho completo (más fáciles de tocar que apretados en una fila). */
+@media (max-width: 640px) {
+  .venta-detalle__cuota { grid-template-columns: 1fr; justify-items: start; gap: 6px; }
+  .venta-detalle__cuota input,
+  .venta-detalle__cuota button { width: 100%; }
+}

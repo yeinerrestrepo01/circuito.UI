@@ -1,0 +1,8 @@
+<div class="imprimir-cotizacion">
+  @if (cotizacion(); as c) {
+    <button type="button" class="btn btn-primary imprimir-cotizacion__boton no-print" (click)="imprimir()">Imprimir</button>
+    <div class="imprimir-cotizacion__hoja">
+      <app-recibo-cotizacion [cotizacion]="c" [nombreNegocio]="nombreNegocio" [nitEmpresa]="nitEmpresa()" />
+    </div>
+  }
+</div>

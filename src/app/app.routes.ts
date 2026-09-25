@@ -32,6 +32,13 @@ export const routes: Routes = [
     title: 'Circuito — Recibo de abono',
   },
   {
+    // Recibo de cotización — mismo criterio de impresión aislada.
+    path: 'ventas/cotizaciones/:id/imprimir',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/cotizaciones/pages/imprimir/imprimir-cotizacion.component').then((m) => m.ImprimirCotizacionComponent),
+    title: 'Circuito — Imprimir cotización',
+  },
+  {
     // Nivel plataforma: su propio rail y layout, nunca el de tenant.
     path: 'admin',
     canActivate: [superadminGuard],

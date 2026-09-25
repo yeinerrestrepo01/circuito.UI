@@ -3,24 +3,29 @@
   Variables base de color, tipografía, espaciado y radios.
   Contenido: claro. Menú lateral (rail): siempre oscuro, independiente del tema del contenido.
   Se mantienen como CSS custom properties (no variables SCSS) para poder cambiarlas en runtime.
+
+  Neutros y colores semánticos (info/éxito/alerta/error) igualados a los de RestoApp.UI
+  (src/styles/_variables.scss) a propósito — misma familia de productos, se tienen que sentir
+  parientes. El acento de marca (cobre) se queda distinto adrede: cada producto conserva su propia
+  identidad, solo se comparte el "chasis" neutro/semántico.
 */
 
 :root {
-  /* ---- Superficies de contenido (claro) ---- */
-  --color-page: #EDEEEB;
-  --color-surface: #F8F8F5;
-  --color-border: #D7D8D1;
-  --color-ink: #1B1F1D;
-  --color-ink-secondary: #585C57;
+  /* ---- Superficies de contenido (claro) — = RestoApp bg-primary/bg-secondary/border-solid/text ---- */
+  --color-page: #F5F4F0;
+  --color-surface: #FFFFFF;
+  --color-border: #D3D1C7;
+  --color-ink: #2C2C2A;
+  --color-ink-secondary: #5F5E5A;
 
-  /* ---- Color de marca y acentos (tono claro, para texto/íconos sobre fondo claro) ---- */
-  --color-brand: #B5551E;       /* cobre */
-  --color-info: #1C6E8C;        /* voltio */
-  --color-warning: #966016;     /* ámbar */
+  /* ---- Color de marca (propio de Circuito, sin igualar) + semánticos (= RestoApp) ---- */
+  --color-brand: #B5551E;       /* cobre — acento propio de Circuito */
+  --color-info: #378ADD;
+  --color-warning: #EF9F27;
   --color-warning-bg: #FAEEDA;
-  --color-success: #2F7A4C;     /* verde-taller */
-  --color-success-bg: #EAF3DE;
-  --color-danger: #A63232;      /* rojo-falla */
+  --color-success: #1D9E75;
+  --color-success-bg: #E1F5EE;
+  --color-danger: #E24B4A;
   --color-danger-bg: #FCEBEB;
 
   /* ---- Rail de navegación (siempre oscuro) ---- */
@@ -31,10 +36,10 @@
 
   /* Variantes de acento para uso sobre el rail oscuro (más claras que las de contenido) */
   --color-brand-dark: #D9793F;
-  --color-info-dark: #5FB8DA;
-  --color-warning-dark: #E8A23D;
-  --color-success-dark: #6FCB93;
-  --color-danger-dark: #E2726F;
+  --color-info-dark: #6FB3EA;
+  --color-warning-dark: #F5BC64;
+  --color-success-dark: #5DCAA5;
+  --color-danger-dark: #EE8482;
 
   /* ---- Tipografía ---- */
   --font-display: 'Big Shoulders', system-ui, sans-serif;

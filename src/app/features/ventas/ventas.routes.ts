@@ -18,6 +18,11 @@ export const VENTAS_ROUTES: Routes = [
     title: 'Circuito — Historial de ventas',
   },
   {
+    path: 'cotizaciones',
+    loadChildren: () => import('../cotizaciones/cotizaciones.routes').then((m) => m.COTIZACIONES_ROUTES),
+    data: { ...RAIL_DATA },
+  },
+  {
     // Debe ir al final: captura cualquier otro segmento como id de venta.
     path: ':id',
     loadComponent: () => import('./pages/venta-detalle/venta-detalle.component').then((m) => m.VentaDetalleComponent),

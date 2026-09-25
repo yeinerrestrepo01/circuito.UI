@@ -19,6 +19,16 @@ const CATEGORIAS_VIDA_UTIL = [
   'Aceite (por tiempo o km)',
   'Personalizada',
 ];
+/** Duración estimada en días para calcular la fecha del recordatorio (ver LifecycleReminder) — un
+ * número real detrás de la etiqueta de texto. "Pastillas de freno"/"Aceite" dependen en realidad del
+ * kilometraje (algo que Circuito no rastrea todavía), así que se les da un tiempo aproximado igual
+ * que a Batería — mejor un aviso estimado que ninguno. "Personalizada" no tiene default: lo escribe
+ * la persona. */
+const DURACION_DIAS_POR_CATEGORIA: Record<string, number> = {
+  'Batería (12–13 meses)': 380,
+  'Pastillas de freno (por kilometraje)': 240,
+  'Aceite (por tiempo o km)': 180,
+};
 const VENTANAS_AVISO: { label: string; dias: number[] }[] = [
   { label: '30 y 7 días antes', dias: [30, 7] },
   { label: '15 días antes', dias: [15] },
@@ -55,7 +65,7 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
   private readonly breadcrumbService = inject(BreadcrumbService);
 
   /** Presente solo bajo la ruta `:sku/editar` — su sola existencia decide todo el modo del formulario. */
-  private readonly skuEditando = this.route.snapshot.paramMap.get('sku');
+  readonly skuEditando = this.route.snapshot.paramMap.get('sku');
   readonly modoEdicion = !!this.skuEditando;
   private productoId = '';
   /** Stock actual, solo informativo en modo edición — el stock no se toca aquí, se ajusta desde Ajustes. */
@@ -66,7 +76,6 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
   readonly unidades = OPCIONES_UNIDAD_MEDIDA;
   readonly categoriasVidaUtil = CATEGORIAS_VIDA_UTIL;
   readonly ventanasAviso = VENTANAS_AVISO;
-  readonly equivalencias = signal<string[]>(['MF-D26-80', 'NS70-80']);
   readonly guardando = signal(false);
 
   readonly form = new FormGroup({
@@ -87,6 +96,9 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
     vidaUtilAplica: new FormControl(true, { nonNullable: true }),
     vidaUtilCategoria: new FormControl(CATEGORIAS_VIDA_UTIL[0], { nonNullable: true }),
     vidaUtilVentana: new FormControl(VENTANAS_AVISO[0].label, { nonNullable: true }),
+    vidaUtilDuracionDias: new FormControl<number | null>(DURACION_DIAS_POR_CATEGORIA[CATEGORIAS_VIDA_UTIL[0]], {
+      validators: [Validators.required, Validators.min(1)],
+    }),
   });
 
   /** true cuando la unidad elegida es "Caja" — muestra y exige el campo "Unidades por caja". */
@@ -147,6 +159,12 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
     this.form.controls.vidaUtilAplica.valueChanges.subscribe((aplica) => this.actualizarVidaUtil(aplica));
     this.actualizarVidaUtil(this.form.controls.vidaUtilAplica.value);
 
+    // Al cambiar de categoría se sugiere su duración por defecto (o se deja vacío para que la
+    // persona la escriba, en "Personalizada") — siempre queda editable después.
+    this.form.controls.vidaUtilCategoria.valueChanges.subscribe((categoria) => {
+      this.form.controls.vidaUtilDuracionDias.setValue(DURACION_DIAS_POR_CATEGORIA[categoria] ?? null);
+    });
+
     if (this.skuEditando) {
       this.inventarioService.buscarProducto(this.skuEditando).subscribe({
         next: (producto) => this.precargarDesdeProducto(producto),
@@ -183,6 +201,11 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
       vidaUtilCategoria: producto.lifecycleCategory ?? CATEGORIAS_VIDA_UTIL[0],
       vidaUtilVentana: ventana?.label ?? VENTANAS_AVISO[0].label,
     });
+    // El patchValue de arriba dispara el listener que sugiere una duración por defecto para la
+    // categoría — se pisa acá con la que el producto ya tenía guardada de verdad.
+    this.form.controls.vidaUtilDuracionDias.setValue(
+      producto.lifecycleDurationDays ?? DURACION_DIAS_POR_CATEGORIA[producto.lifecycleCategory ?? ''] ?? null,
+    );
   }
 
   private actualizarUnidadesPorCaja(unidad: UnidadMedida): void {
@@ -199,15 +222,11 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
     const metodo = aplica ? 'enable' : 'disable';
     this.form.controls.vidaUtilCategoria[metodo]({ emitEvent: false });
     this.form.controls.vidaUtilVentana[metodo]({ emitEvent: false });
+    this.form.controls.vidaUtilDuracionDias[metodo]({ emitEvent: false });
   }
 
   regenerarCodigo(): void {
     this.codigoNumerico.set(codigoNumericoAleatorio());
-  }
-
-  agregarEquivalencia(): void {
-    const referencia = prompt('Referencia OEM equivalente')?.trim();
-    if (referencia) this.equivalencias.update((lista) => [...lista, referencia]);
   }
 
   /** El mismo código puede repetirse en otros productos (p. ej. un "Grupo A30" en varias marcas) —
@@ -274,6 +293,7 @@ export class NuevoProductoComponent implements OnInit, OnDestroy {
       hasLifecycleReminder: v.vidaUtilAplica,
       lifecycleCategory: v.vidaUtilAplica ? v.vidaUtilCategoria : undefined,
       lifecycleReminderWindowDays: v.vidaUtilAplica ? (ventana?.dias ?? []) : undefined,
+      lifecycleDurationDays: v.vidaUtilAplica ? (v.vidaUtilDuracionDias ?? undefined) : undefined,
     };
   }
 

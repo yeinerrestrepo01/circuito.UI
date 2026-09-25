@@ -30,7 +30,16 @@ export class ImprimirAbonoComponent implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
-    this.ventasService.obtenerReciboAbono(id).subscribe({ next: (recibo) => this.recibo.set(recibo), error: () => {} });
+    this.ventasService.obtenerReciboAbono(id).subscribe({
+      next: (recibo) => {
+        this.recibo.set(recibo);
+        // Se imprime solo apenas carga el recibo — el botón "Imprimir" se deja solo por si hace
+        // falta reimprimir después. El pequeño delay le da tiempo a Angular a pintar el @if antes
+        // de que el navegador tome la foto de la página para el diálogo de impresión.
+        setTimeout(() => window.print(), 300);
+      },
+      error: () => {},
+    });
     this.empresaService.cargarEmpresa().subscribe({ error: () => {} });
   }
 

@@ -46,6 +46,9 @@ export interface Producto {
   lifecycleCategory?: string | null;
   /** Días antes del vencimiento en los que se envía cada recordatorio, p. ej. [30, 7]. */
   lifecycleReminderWindowDays?: number[] | null;
+  /** Duración real de la vida útil en días — la que se usa para calcular la fecha del recordatorio
+   * al vender (ver LifecycleReminder). Requerido cuando `hasLifecycleReminder` es true. */
+  lifecycleDurationDays?: number | null;
   /** false = el negocio dejó de vender/comprar este producto; sigue en el catálogo (historial, reportes)
    * pero se oculta de donde alguien lo elegiría para vender/comprar. */
   isActive: boolean;
@@ -80,6 +83,7 @@ export interface NuevoProductoPayload {
   hasLifecycleReminder?: boolean;
   lifecycleCategory?: string;
   lifecycleReminderWindowDays?: number[];
+  lifecycleDurationDays?: number;
   requiresSerialNumber?: boolean;
 }
 
@@ -100,5 +104,6 @@ export interface ActualizarProductoPayload {
   hasLifecycleReminder?: boolean;
   lifecycleCategory?: string;
   lifecycleReminderWindowDays?: number[];
+  lifecycleDurationDays?: number;
   requiresSerialNumber?: boolean;
 }

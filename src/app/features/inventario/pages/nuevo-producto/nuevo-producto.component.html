@@ -118,11 +118,17 @@
         <div class="nuevo-producto__titulo">Imagen y compatibilidad</div>
         <div class="nuevo-producto__dropzone">Arrastra una imagen o haz clic</div>
         <span class="muted" style="font-size:12px;">JPG o PNG, máx. 5 MB</span>
-        <div class="nuevo-producto__pills" style="margin-top:14px;">
-          @for (eq of equivalencias(); track eq) { <span class="mono nuevo-producto__pill">{{ eq }}</span> }
-          <a href="javascript:void(0)" (click)="agregarEquivalencia()" style="font-size:13px; padding:4px 0;">+ Agregar equivalencia</a>
-        </div>
-        <a routerLink="/compatibilidad" style="font-size:13px;">Agregar vehículos compatibles desde el catálogo</a>
+        <!-- Vehículos compatibles y códigos OEM se gestionan de verdad desde la ficha del producto
+             (pestaña "Compatibilidad") — necesitan que el producto ya exista (tiene su propio Id). -->
+        @if (modoEdicion) {
+          <a [routerLink]="['/inventario', skuEditando]" style="font-size:13px; margin-top:14px; display:inline-block;">
+            Gestionar vehículos compatibles y códigos OEM →
+          </a>
+        } @else {
+          <p class="muted" style="font-size:12px; margin-top:14px;">
+            Vas a poder cargar vehículos compatibles y códigos OEM apenas guardes el producto, desde su ficha.
+          </p>
+        }
       </app-card>
 
       <app-card padded>
@@ -142,7 +148,14 @@
               @for (w of ventanasAviso; track w.label) { <option [value]="w.label">{{ w.label }}</option> }
             </select>
           </app-form-field>
+          <app-form-field label="Duración estimada (días)" inputId="vidautil-dias">
+            <input id="vidautil-dias" type="number" min="1" formControlName="vidaUtilDuracionDias" />
+          </app-form-field>
         </div>
+        <p class="muted" style="font-size:12px; margin-top:8px;">
+          Se sugiere sola según la categoría — "Pastillas de freno"/"Aceite" dependen del kilometraje (que todavía no rastreamos), así que es un
+          estimado. Editala si conocés mejor el ciclo real de este producto.
+        </p>
       </app-card>
     </div>
   </form>

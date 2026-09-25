@@ -25,3 +25,10 @@
 .toast--success { background: var(--color-success); }
 .toast--error { background: var(--color-danger); }
 .toast--info { background: var(--color-info); }
+
+@media (max-width: 480px) {
+  /* `min-width:260px` fijo se sale del borde en un teléfono angosto (~320-336px) — se estira a
+     ancho completo con margen seguro en vez de depender de que coincida por casualidad. */
+  .toast-host { left: var(--space-4); right: var(--space-4); }
+  .toast { min-width: 0; max-width: none; width: 100%; }
+}

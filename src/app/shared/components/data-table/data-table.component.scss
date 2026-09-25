@@ -1,4 +1,8 @@
-.data-table { font-size: 14px; width: 100%; border-collapse: collapse; }
+/* En pantallas angostas la tabla se desliza horizontalmente en vez de romper el layout de la
+   página — ninguna columna se pierde ni se aplasta, se recorre con el dedo (mismo criterio que
+   una app bancaria/POS con tablas densas). El pie de paginación queda AFUERA de este scroll. */
+.data-table__scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.data-table { font-size: 14px; width: 100%; min-width: max-content; border-collapse: collapse; }
 .data-table th {
   font-size: 12px;
   font-weight: 400;
@@ -15,6 +19,7 @@
 
 .data-table__pagination {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
