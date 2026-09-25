@@ -1,8 +1,0 @@
-:host.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  display: block;
-}
-:host.card--flex-col { display: flex; flex-direction: column; }
-:host.card--padded { padding: 20px; }

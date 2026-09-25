@@ -1,6 +1,0 @@
-.abc-lista { display: flex; flex-direction: column; gap: 14px; }
-.abc-fila { display: flex; align-items: center; gap: 12px; }
-.abc-fila__etiqueta { width: 100px; font-size: 13px; flex-shrink: 0; }
-.abc-fila__barra { flex-grow: 1; height: 16px; background: var(--color-page); border-radius: 4px; overflow: hidden; }
-.abc-fila__relleno { height: 100%; }
-.abc-fila__valores { width: 160px; font-size: 13px; text-align: right; flex-shrink: 0; }
